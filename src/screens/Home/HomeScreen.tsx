@@ -48,13 +48,13 @@ export default function HomeScreen() {
                 Categories
               </Text>
               <Text variant="headlineSmall" style={styles.statValue}>
-                Ready
+                View
               </Text>
             </View>
           </Card.Content>
         </Card>
 
-        <Card style={[styles.statCard, { backgroundColor: '#2196F3' }]}>
+        <Card style={[styles.statCard, { backgroundColor: '#2196F3' }]} onPress={() => router.push('/transactions' as any)}>
           <Card.Content style={styles.statContent}>
             <IconButton icon="chart-line" size={32} iconColor="#FFF" style={styles.statIcon} />
             <View style={styles.statTextContainer}>
@@ -62,7 +62,7 @@ export default function HomeScreen() {
                 Transactions
               </Text>
               <Text variant="headlineSmall" style={styles.statValue}>
-                Soon
+                View
               </Text>
             </View>
           </Card.Content>
@@ -99,13 +99,37 @@ export default function HomeScreen() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.actionCard} onPress={() => router.push('/transactions/add' as any)}>
+        <Card style={styles.actionCard} onPress={() => router.push('/transactions' as any)}>
           <Card.Content style={styles.actionContent}>
             <View style={[styles.actionIcon, { backgroundColor: theme.colors.secondaryContainer }]}>
               <IconButton 
-                icon="plus-circle" 
+                icon="format-list-bulleted" 
                 size={28} 
                 iconColor={theme.colors.secondary}
+                style={{ margin: 0 }}
+              />
+            </View>
+            <View style={styles.actionText}>
+              <Text variant="titleMedium">View Transactions</Text>
+              <Text variant="bodySmall" style={styles.actionDescription}>
+                See all your income and expenses
+              </Text>
+            </View>
+            <IconButton
+              icon="chevron-right"
+              size={24}
+              iconColor={theme.colors.primary}
+            />
+          </Card.Content>
+        </Card>
+
+        <Card style={styles.actionCard} onPress={() => router.push('/transactions/add' as any)}>
+          <Card.Content style={styles.actionContent}>
+            <View style={[styles.actionIcon, { backgroundColor: '#4CAF5020' }]}>
+              <IconButton 
+                icon="plus-circle" 
+                size={28} 
+                iconColor="#4CAF50"
                 style={{ margin: 0 }}
               />
             </View>
@@ -118,7 +142,7 @@ export default function HomeScreen() {
             <IconButton
               icon="chevron-right"
               size={24}
-              iconColor={theme.colors.outline}
+              iconColor={theme.colors.primary}
             />
           </Card.Content>
         </Card>
@@ -184,9 +208,9 @@ export default function HomeScreen() {
                 </Text>
               </View>
               <IconButton 
-                icon="circle-outline" 
+                icon="check-circle" 
                 size={24} 
-                iconColor={theme.colors.outline}
+                iconColor="#4CAF50"
               />
             </View>
 
