@@ -1,16 +1,15 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
     ScrollView,
     StyleSheet,
-    View,
+    View
 } from 'react-native';
 import {
     ActivityIndicator,
     Button,
     HelperText,
+    IconButton,
     Surface,
     Text,
     TextInput,
@@ -105,135 +104,162 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <ScrollView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
+      contentContainerStyle={styles.scrollContent}
+      keyboardShouldPersistTaps="handled"
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Surface style={styles.surface} elevation={1}>
-          <View style={styles.header}>
-            <Text variant="headlineLarge" style={styles.title}>
-              Create Account
-            </Text>
-            <Text variant="bodyLarge" style={styles.subtitle}>
-              Sign up to get started
-            </Text>
-          </View>
+      {/* Modern Header with Icon */}
+      <View style={styles.heroSection}>
+        <View style={[styles.iconContainer, { backgroundColor: theme.colors.primary }]}>
+          <IconButton
+            icon="account-plus"
+            size={48}
+            iconColor="#FFF"
+          />
+        </View>
+        <Text variant="displaySmall" style={[styles.title, { color: theme.colors.primary }]}>
+          Create Account
+        </Text>
+        <Text variant="titleMedium" style={styles.subtitle}>
+          Start managing your finances today
+        </Text>
+      </View>
 
-          <View style={styles.form}>
-            <TextInput
-              label="Username"
-              value={username}
-              onChangeText={(text) => {
-                setUsername(text);
-                setErrors({ ...errors, username: '' });
-              }}
-              mode="outlined"
-              autoCapitalize="none"
-              autoComplete="username"
-              disabled={isLoading}
-              error={!!errors.username}
-              left={<TextInput.Icon icon="account" />}
-              style={styles.input}
-            />
-            <HelperText type="error" visible={!!errors.username}>
-              {errors.username}
-            </HelperText>
+      {/* Register Card */}
+      <Surface style={styles.formCard} elevation={2}>
+        <View style={styles.form}>
+          <TextInput
+            label="Username"
+            value={username}
+            onChangeText={(text) => {
+              setUsername(text);
+              setErrors({ ...errors, username: '' });
+            }}
+            mode="outlined"
+            autoCapitalize="none"
+            autoComplete="username"
+            disabled={isLoading}
+            error={!!errors.username}
+            left={<TextInput.Icon icon="account-outline" />}
+            style={styles.input}
+            outlineStyle={{ borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' }}
+          />
+          <HelperText type="error" visible={!!errors.username}>
+            {errors.username}
+          </HelperText>
 
-            <TextInput
-              label="Email"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                setErrors({ ...errors, email: '' });
-              }}
-              mode="outlined"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoComplete="email"
-              disabled={isLoading}
-              error={!!errors.email}
-              left={<TextInput.Icon icon="email" />}
-              style={styles.input}
-            />
-            <HelperText type="error" visible={!!errors.email}>
-              {errors.email}
-            </HelperText>
+          <TextInput
+            label="Email"
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              setErrors({ ...errors, email: '' });
+            }}
+            mode="outlined"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            disabled={isLoading}
+            error={!!errors.email}
+            left={<TextInput.Icon icon="email-outline" />}
+            style={styles.input}
+            outlineStyle={{ borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' }}
+          />
+          <HelperText type="error" visible={!!errors.email}>
+            {errors.email}
+          </HelperText>
 
-            <TextInput
-              label="Password"
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                setErrors({ ...errors, password: '' });
-              }}
-              mode="outlined"
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              autoComplete="password"
-              disabled={isLoading}
-              error={!!errors.password}
-              left={<TextInput.Icon icon="lock" />}
-              right={
-                <TextInput.Icon
-                  icon={showPassword ? 'eye-off' : 'eye'}
-                  onPress={() => setShowPassword(!showPassword)}
-                />
-              }
-              style={styles.input}
-            />
-            <HelperText type="error" visible={!!errors.password}>
-              {errors.password}
-            </HelperText>
+          <TextInput
+            label="Password"
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              setErrors({ ...errors, password: '' });
+            }}
+            mode="outlined"
+            secureTextEntry={!showPassword}
+            autoCapitalize="none"
+            autoComplete="password"
+            disabled={isLoading}
+            error={!!errors.password}
+            left={<TextInput.Icon icon="lock-outline" />}
+            right={
+              <TextInput.Icon
+                icon={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                onPress={() => setShowPassword(!showPassword)}
+              />
+            }
+            style={styles.input}
+            outlineStyle={{ borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' }}
+          />
+          <HelperText type="error" visible={!!errors.password}>
+            {errors.password}
+          </HelperText>
 
-            <TextInput
-              label="Confirm Password"
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                setErrors({ ...errors, confirmPassword: '' });
-              }}
-              mode="outlined"
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              disabled={isLoading}
-              error={!!errors.confirmPassword}
-              left={<TextInput.Icon icon="lock-check" />}
-              right={
-                <TextInput.Icon
-                  icon={showConfirmPassword ? 'eye-off' : 'eye'}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                />
-              }
-              style={styles.input}
-            />
-            <HelperText type="error" visible={!!errors.confirmPassword}>
-              {errors.confirmPassword}
-            </HelperText>
+          <TextInput
+            label="Confirm Password"
+            value={confirmPassword}
+            onChangeText={(text) => {
+              setConfirmPassword(text);
+              setErrors({ ...errors, confirmPassword: '' });
+            }}
+            mode="outlined"
+            secureTextEntry={!showConfirmPassword}
+            autoCapitalize="none"
+            disabled={isLoading}
+            error={!!errors.confirmPassword}
+            left={<TextInput.Icon icon="lock-check-outline" />}
+            right={
+              <TextInput.Icon
+                icon={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              />
+            }
+            style={styles.input}
+            outlineStyle={{ borderWidth: 1, borderColor: 'rgba(0,0,0,0.1)' }}
+          />
+          <HelperText type="error" visible={!!errors.confirmPassword}>
+            {errors.confirmPassword}
+          </HelperText>
 
-            <Button
-              mode="contained"
-              onPress={handleRegister}
-              disabled={isLoading}
-              style={styles.button}
-              contentStyle={styles.buttonContent}
-            >
-              {isLoading ? <ActivityIndicator color={theme.colors.onPrimary} /> : 'Sign Up'}
-            </Button>
+          <Button
+            mode="contained"
+            onPress={handleRegister}
+            disabled={isLoading}
+            style={styles.registerButton}
+            contentStyle={styles.buttonContent}
+            buttonColor={theme.colors.primary}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text variant="titleMedium" style={{ color: '#FFF', fontWeight: 'bold' }}>
+                Sign Up
+              </Text>
+            )}
+          </Button>
+        </View>
+      </Surface>
 
-            <View style={styles.footer}>
-              <Text variant="bodyMedium">Already have an account? </Text>
-              <Button mode="text" onPress={navigateToLogin} disabled={isLoading} compact>
-                Sign In
-              </Button>
-            </View>
-          </View>
-        </Surface>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      {/* Footer */}
+      <View style={styles.footer}>
+        <Text variant="bodyLarge" style={styles.footerText}>
+          Already have an account?
+        </Text>
+        <Button
+          mode="text"
+          onPress={navigateToLogin}
+          disabled={isLoading}
+          textColor={theme.colors.primary}
+          labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
+        >
+          Sign In
+        </Button>
+      </View>
+
+      <View style={{ height: 32 }} />
+    </ScrollView>
   );
 }
 
@@ -243,41 +269,65 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 16,
-  },
-  surface: {
     padding: 24,
-    borderRadius: 12,
   },
-  header: {
+  heroSection: {
     alignItems: 'center',
+    marginTop: 40,
     marginBottom: 32,
   },
+  iconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#6200EA',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
   title: {
-    marginBottom: 8,
     fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
     opacity: 0.7,
+    textAlign: 'center',
+  },
+  formCard: {
+    borderRadius: 24,
+    padding: 24,
+    marginBottom: 24,
   },
   form: {
     width: '100%',
   },
   input: {
     marginBottom: 4,
+    backgroundColor: 'transparent',
   },
-  button: {
-    marginTop: 16,
-    marginBottom: 16,
+  registerButton: {
+    marginTop: 24,
+    borderRadius: 12,
+    elevation: 4,
   },
   buttonContent: {
-    paddingVertical: 8,
+    paddingVertical: 12,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 8,
+    gap: 4,
+  },
+  footerText: {
+    opacity: 0.7,
   },
 });
