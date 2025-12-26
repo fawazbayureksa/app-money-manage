@@ -56,15 +56,25 @@ apiClient.interceptors.response.use(
 
 // API response type
 export interface ApiResponse<T = any> {
-  status: boolean;
+  success: boolean;
   message: string;
   data?: T;
 }
 
+// User interface
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  address?: string;
+  is_verified?: boolean;
+  is_admin?: boolean;
+}
+
 // Auth API endpoints
 export const authApi = {
-  login: async (email: string, password: string): Promise<ApiResponse<{ token: string }>> => {
-    const response = await apiClient.post<ApiResponse<{ token: string }>>('/login', {
+  login: async (email: string, password: string): Promise<ApiResponse<{ token: string; user: User }>> => {
+    const response = await apiClient.post<ApiResponse<{ token: string; user: User }>>('/login', {
       email,
       password,
     });
@@ -75,8 +85,8 @@ export const authApi = {
     username: string,
     email: string,
     password: string
-  ): Promise<ApiResponse<{ token: string }>> => {
-    const response = await apiClient.post<ApiResponse<{ token: string }>>('/register', {
+  ): Promise<ApiResponse<{ token: string; user: User }>> => {
+    const response = await apiClient.post<ApiResponse<{ token: string; user: User }>>('/register', {
       username,
       email,
       password,

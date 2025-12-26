@@ -39,26 +39,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const storedToken = await storage.getToken();
       const storedUser = await storage.getUserData();
 
-      if (storedToken) {
+      if (storedToken && storedUser) {
+        // Restore auth state from storage
         setToken(storedToken);
         setUser(storedUser);
         setIsAuthenticated(true);
 
-        // Optionally verify token with backend
+        // Optionally verify token with backend (don't logout on failure)
         try {
           const response = await authApi.getCurrentUser();
-          if (response.status && response.data) {
-            setUser(response.data);
-            await storage.saveUserData(response.data);
+          if (response.success && response.data) {
+            const updatedUser = {
+              id: response.data.id?.toString(),
+              username: response.data.name,
+              email: response.data.email,
+            };
+            setUser(updatedUser);
+            await storage.saveUserData(updatedUser);
           }
         } catch (error) {
-          // Token might be invalid, clear it
-          await handleLogout();
+          // Just log the error, keep user logged in with stored data
+          console.log('Could not verify token with backend, using stored data');
         }
       }
     } catch (error) {
       console.error('Auth check error:', error);
-      await handleLogout();
+      // Don't logout on error, just keep current state
     } finally {
       setIsLoading(false);
     }
@@ -69,31 +75,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       const response = await authApi.login(email, password);
 
-      if (response.status && response.data?.token) {
-        const { token: authToken } = response.data;
+      if (response.success && response.data?.token) {
+        const { token: authToken, user: userData } = response.data;
 
         // Save token
         await storage.saveToken(authToken);
         setToken(authToken);
 
-        // Set basic user data from email (getCurrentUser is optional)
-        const basicUser = { email };
-        await storage.saveUserData(basicUser);
-        setUser(basicUser);
+        // Save user data from response
+        const userInfo = {
+          id: userData.id?.toString(),
+          username: userData.name,
+          email: userData.email,
+        };
+        await storage.saveUserData(userInfo);
+        setUser(userInfo);
 
         setIsAuthenticated(true);
-        
-        // Try to get detailed user data in background (non-blocking)
-        authApi.getCurrentUser()
-          .then((userResponse) => {
-            if (userResponse.status && userResponse.data) {
-              storage.saveUserData(userResponse.data);
-              setUser(userResponse.data);
-            }
-          })
-          .catch((error) => {
-            console.log('Could not fetch user details (optional):', error.message);
-          });
       } else {
         throw new Error(response.message || 'Login failed');
       }
@@ -115,31 +113,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       const response = await authApi.register(username, email, password);
 
-      if (response.status && response.data?.token) {
-        const { token: authToken } = response.data;
+      if (response.success && response.data?.token) {
+        const { token: authToken, user: userData } = response.data;
 
         // Save token
         await storage.saveToken(authToken);
         setToken(authToken);
 
-        // Set basic user data
-        const basicUser = { username, email };
-        await storage.saveUserData(basicUser);
-        setUser(basicUser);
+        // Save user data from response
+        const userInfo = {
+          id: userData.id?.toString(),
+          username: userData.name,
+          email: userData.email,
+        };
+        await storage.saveUserData(userInfo);
+        setUser(userInfo);
 
         setIsAuthenticated(true);
-        
-        // Try to get detailed user data in background (non-blocking)
-        authApi.getCurrentUser()
-          .then((userResponse) => {
-            if (userResponse.status && userResponse.data) {
-              storage.saveUserData(userResponse.data);
-              setUser(userResponse.data);
-            }
-          })
-          .catch((error) => {
-            console.log('Could not fetch user details (optional):', error.message);
-          });
       } else {
         throw new Error(response.message || 'Registration failed');
       }

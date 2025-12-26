@@ -50,13 +50,13 @@ export default function AddCategoryScreen() {
     try {
       setLoading(true);
       setError('');
+      const body = {
+        categoryName: name.trim(),
+        description: name.trim(),
+      };
+      const response = await categoryService.createCategory(body);
 
-      const response = await categoryService.createCategory({
-        name: name.trim(),
-      });
-
-      if (response.status) {
-        // Navigate back to category list
+      if (response.success) {
         router.back();
       } else {
         setError(response.message || 'Failed to create category');

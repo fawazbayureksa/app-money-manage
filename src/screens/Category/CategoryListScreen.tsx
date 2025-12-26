@@ -33,7 +33,9 @@ export default function CategoryListScreen() {
     try {
       if (showLoader) setLoading(true);
       const response = await categoryService.getCategories();
-      if (response.status && response.data) {
+      console.log('API Response:', JSON.stringify(response, null, 2));
+      if (response.success && response.data) {
+        console.log('Categories data:', JSON.stringify(response.data, null, 2));
         setCategories(response.data);
       }
     } catch (error: any) {
@@ -65,7 +67,7 @@ export default function CategoryListScreen() {
   const handleDelete = (category: Category) => {
     Alert.alert(
       'Delete Category',
-      `Are you sure you want to delete "${category.name}"?`,
+      `Are you sure you want to delete "${category.CategoryName}"?`,
       [
         {
           text: 'Cancel',
@@ -76,8 +78,8 @@ export default function CategoryListScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await categoryService.deleteCategory(category.id);
-              if (response.status) {
+              const response = await categoryService.deleteCategory(category.ID);
+              if (response.success) {
                 setSnackbarMessage('Category deleted successfully');
                 setSnackbarVisible(true);
                 fetchCategories(false);
@@ -104,9 +106,9 @@ export default function CategoryListScreen() {
     <Card style={styles.card}>
       <Card.Content style={styles.cardContent}>
         <View style={styles.categoryInfo}>
-          <Text variant="titleMedium">{item.name}</Text>
+          <Text variant="titleMedium">{item.CategoryName}</Text>
           <Text variant="bodySmall" style={styles.dateText}>
-            Created: {new Date(item.created_at).toLocaleDateString()}
+            {item.Description}
           </Text>
         </View>
         <IconButton
@@ -145,7 +147,7 @@ export default function CategoryListScreen() {
       <FlatList
         data={categories}
         renderItem={renderCategoryItem}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item, index) => item?.ID?.toString() || `category-${index}`}
         contentContainerStyle={[
           styles.listContent,
           categories.length === 0 && styles.emptyListContent,
@@ -162,9 +164,9 @@ export default function CategoryListScreen() {
 
       <FAB
         icon="plus"
-        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        style={styles.fab}
+        color="#FFFFFF"
         onPress={handleAddCategory}
-        label="Add Category"
       />
 
       <Snackbar
@@ -231,6 +233,15 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 16,
-    bottom: 16,
+    bottom: 50,
+    backgroundColor: '#4192d5ff',
+    elevation: 8,
+    shadowColor: '#6200EA',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
   },
 });

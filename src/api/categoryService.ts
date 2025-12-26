@@ -1,15 +1,17 @@
 import apiClient, { ApiResponse } from './client';
 
 export interface Category {
-  id: number;
-  name: string;
-  user_id: number;
-  created_at: string;
-  updated_at?: string;
+  ID: number;
+  CategoryName: string;
+  Description: string;
+  UserID: number;
+  CreatedAt: string;
+  UpdatedAt?: string;
 }
 
 export interface CategoryData {
-  name: string;
+  categoryName: string;
+  description?: string;
 }
 
 export const categoryService = {
