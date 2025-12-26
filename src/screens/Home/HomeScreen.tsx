@@ -99,7 +99,7 @@ export default function HomeScreen() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.actionCard}>
+        <Card style={styles.actionCard} onPress={() => router.push('/transactions/add' as any)}>
           <Card.Content style={styles.actionContent}>
             <View style={[styles.actionIcon, { backgroundColor: theme.colors.secondaryContainer }]}>
               <IconButton 
@@ -112,7 +112,7 @@ export default function HomeScreen() {
             <View style={styles.actionText}>
               <Text variant="titleMedium">Add Transaction</Text>
               <Text variant="bodySmall" style={styles.actionDescription}>
-                Record your income or expenses (Coming Soon)
+                Record your income or expenses
               </Text>
             </View>
             <IconButton
