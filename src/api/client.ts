@@ -85,9 +85,9 @@ export const authApi = {
     username: string,
     email: string,
     password: string
-  ): Promise<ApiResponse<{ token: string; user: User }>> => {
-    const response = await apiClient.post<ApiResponse<{ token: string; user: User }>>('/register', {
-      username,
+  ): Promise<ApiResponse<User>> => {
+    const response = await apiClient.post<ApiResponse<User>>('/register', {
+      name: username,
       email,
       password,
     });

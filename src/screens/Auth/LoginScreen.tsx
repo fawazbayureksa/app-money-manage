@@ -1,19 +1,19 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    View
+  ScrollView,
+  StyleSheet,
+  View
 } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    HelperText,
-    IconButton,
-    Surface,
-    Text,
-    TextInput,
-    useTheme,
+  ActivityIndicator,
+  Button,
+  HelperText,
+  IconButton,
+  Surface,
+  Text,
+  TextInput,
+  useTheme,
 } from 'react-native-paper';
 import { useAuth } from '../../context/AuthContext';
 
@@ -62,7 +62,8 @@ export default function LoginScreen() {
     }
 
     try {
-      await login(email, password);
+      // Trim inputs to remove accidental spaces
+      await login(email.trim(), password.trim());
       // Navigation will be handled by AuthContext and root layout
     } catch (error) {
       // Error is already handled in AuthContext with Alert
@@ -110,7 +111,9 @@ export default function LoginScreen() {
             mode="outlined"
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
             autoComplete="email"
+            textContentType="emailAddress"
             disabled={isLoading}
             error={!!errors.email}
             left={<TextInput.Icon icon="email-outline" />}
@@ -131,7 +134,9 @@ export default function LoginScreen() {
             mode="outlined"
             secureTextEntry={!showPassword}
             autoCapitalize="none"
+            autoCorrect={false}
             autoComplete="password"
+            textContentType="password"
             disabled={isLoading}
             error={!!errors.password}
             left={<TextInput.Icon icon="lock-outline" />}

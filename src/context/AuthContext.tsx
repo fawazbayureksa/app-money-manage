@@ -113,23 +113,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(true);
       const response = await authApi.register(username, email, password);
 
-      if (response.success && response.data?.token) {
-        const { token: authToken, user: userData } = response.data;
-
-        // Save token
-        await storage.saveToken(authToken);
-        setToken(authToken);
-
-        // Save user data from response
-        const userInfo = {
-          id: userData.id?.toString(),
-          username: userData.name,
-          email: userData.email,
-        };
-        await storage.saveUserData(userInfo);
-        setUser(userInfo);
-
-        setIsAuthenticated(true);
+      if (response.success && response.data) {
+        // Registration successful - now auto-login
+        Alert.alert('Success', 'Account created successfully! Logging you in...');
+        
+        // Automatically login after registration
+        await login(email, password);
       } else {
         throw new Error(response.message || 'Registration failed');
       }
@@ -160,13 +149,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
-      // Optionally call logout endpoint
+      // Call logout endpoint to invalidate token on backend
       try {
         await authApi.logout();
       } catch (error) {
         console.error('Logout API error:', error);
         // Continue with local logout even if API fails
       }
+      // Clear local storage and state
       await handleLogout();
     } catch (error) {
       console.error('Logout error:', error);

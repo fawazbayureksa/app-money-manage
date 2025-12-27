@@ -1,19 +1,19 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ScrollView,
-    StyleSheet,
-    View
+  ScrollView,
+  StyleSheet,
+  View
 } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    HelperText,
-    IconButton,
-    Surface,
-    Text,
-    TextInput,
-    useTheme,
+  ActivityIndicator,
+  Button,
+  HelperText,
+  IconButton,
+  Surface,
+  Text,
+  TextInput,
+  useTheme,
 } from 'react-native-paper';
 import { useAuth } from '../../context/AuthContext';
 
@@ -89,9 +89,10 @@ export default function RegisterScreen() {
     if (!validateForm()) {
       return;
     }
-
+    console.log('Registering with:', { username, email, password });
     try {
-      await register(username, email, password);
+      // Trim all inputs to remove accidental spaces
+      await register(username.trim(), email.trim(), password.trim());
       // Navigation will be handled by AuthContext and root layout
     } catch (error) {
       // Error is already handled in AuthContext with Alert
@@ -138,7 +139,9 @@ export default function RegisterScreen() {
             }}
             mode="outlined"
             autoCapitalize="none"
+            autoCorrect={false}
             autoComplete="username"
+            textContentType="username"
             disabled={isLoading}
             error={!!errors.username}
             left={<TextInput.Icon icon="account-outline" />}
@@ -159,7 +162,9 @@ export default function RegisterScreen() {
             mode="outlined"
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
             autoComplete="email"
+            textContentType="emailAddress"
             disabled={isLoading}
             error={!!errors.email}
             left={<TextInput.Icon icon="email-outline" />}
@@ -180,7 +185,9 @@ export default function RegisterScreen() {
             mode="outlined"
             secureTextEntry={!showPassword}
             autoCapitalize="none"
+            autoCorrect={false}
             autoComplete="password"
+            textContentType="newPassword"
             disabled={isLoading}
             error={!!errors.password}
             left={<TextInput.Icon icon="lock-outline" />}
@@ -207,6 +214,8 @@ export default function RegisterScreen() {
             mode="outlined"
             secureTextEntry={!showConfirmPassword}
             autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="newPassword"
             disabled={isLoading}
             error={!!errors.confirmPassword}
             left={<TextInput.Icon icon="lock-check-outline" />}

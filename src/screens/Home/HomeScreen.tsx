@@ -10,13 +10,18 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const theme = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [recentAlerts, setRecentAlerts] = useState<BudgetAlert[]>([]);
 
   // Fetch recent alerts
   const fetchRecentAlerts = async () => {
+    // Only fetch if user is authenticated
+    if (!isAuthenticated) {
+      return;
+    }
+
     try {
       const response = await alertService.getAlerts({ unread_only: true });
       if (response.success && response.data) {
@@ -31,11 +36,16 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchRecentAlerts();
-    }, [])
+    }, [isAuthenticated])
   );
 
   const handleLogout = async () => {
-    await logout();
+    try {
+      await logout();
+      router.replace('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const getAlertColor = (percentage: number): string => {
