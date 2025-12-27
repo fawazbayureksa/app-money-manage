@@ -98,7 +98,7 @@ export default function CategoryListScreen() {
 
   // Navigate to add category screen
   const handleAddCategory = () => {
-    router.push('/categories/add' as any);
+    router.push('/(tabs)/categories/add' as any);
   };
 
   // Render category item

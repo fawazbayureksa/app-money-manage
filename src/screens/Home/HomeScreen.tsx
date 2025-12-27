@@ -1,6 +1,9 @@
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, IconButton, Surface, Text, useTheme } from 'react-native-paper';
+import { Button, Card, Chip, IconButton, Text, useTheme } from 'react-native-paper';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BudgetAlert, alertService } from '../../api/alertService';
 import { useAuth } from '../../context/AuthContext';
 
 const { width } = Dimensions.get('window');
@@ -9,34 +12,125 @@ export default function HomeScreen() {
   const theme = useTheme();
   const { user, logout } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [recentAlerts, setRecentAlerts] = useState<BudgetAlert[]>([]);
+
+  // Fetch recent alerts
+  const fetchRecentAlerts = async () => {
+    try {
+      const response = await alertService.getAlerts({ unread_only: true });
+      if (response.success && response.data) {
+        // Get only the 3 most recent alerts
+        setRecentAlerts(response.data.slice(0, 3));
+      }
+    } catch (error) {
+      console.error('Error fetching alerts:', error);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchRecentAlerts();
+    }, [])
+  );
 
   const handleLogout = async () => {
     await logout();
   };
 
+  const getAlertColor = (percentage: number): string => {
+    if (percentage >= 100) return '#F44336';
+    if (percentage >= 80) return '#FF9800';
+    return '#4CAF50';
+  };
+
+  const getAlertIcon = (percentage: number): string => {
+    if (percentage >= 100) return 'alert-circle';
+    if (percentage >= 80) return 'alert';
+    return 'information';
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Welcome Header */}
-      <View style={styles.headerContainer}>
-        <Surface style={[styles.headerSurface, { backgroundColor: theme.colors.primary }]} elevation={4}>
-          <View style={styles.headerContent}>
-            <View style={styles.welcomeSection}>
-              <Text variant="labelLarge" style={styles.welcomeLabel}>
-                Welcome back
-              </Text>
-              <Text variant="headlineMedium" style={[styles.userName, { color: theme.colors.onPrimary }]}>
-                {user?.username || user?.email?.split('@')[0] || 'User'} 👋
-              </Text>
-            </View>
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 16, backgroundColor: theme.colors.primary }]}>
+        <View style={styles.headerContent}>
+          <View style={styles.welcomeSection}>
+            <Text variant="labelLarge" style={styles.welcomeLabel}>
+              Welcome back
+            </Text>
+            <Text variant="headlineLarge" style={[styles.userName, { color: '#FFF' }]}>
+              {user?.username || user?.email?.split('@')[0] || 'User'}
+            </Text>
+            <Text variant="bodyMedium" style={styles.greetingSubtext}>
+              Let's manage your finances today 💰
+            </Text>
+          </View>
+          <View style={styles.avatarContainer}>
             <IconButton
               icon="account-circle"
-              size={40}
-              iconColor={theme.colors.onPrimary}
+              size={48}
+              iconColor="#FFF"
               style={styles.avatarButton}
             />
           </View>
-        </Surface>
+        </View>
       </View>
+
+      {/* Recent Alerts Section */}
+      {recentAlerts.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Recent Alerts
+            </Text>
+            <Chip
+              icon="bell"
+              compact
+              onPress={() => router.push('/alerts' as any)}
+            >
+              View All
+            </Chip>
+          </View>
+
+          {recentAlerts.map((alert) => {
+            const alertColor = getAlertColor(alert.percentage);
+            const alertIcon = getAlertIcon(alert.percentage);
+            
+            return (
+              <Card 
+                key={alert.id}
+                style={[styles.alertCard, { borderLeftWidth: 4, borderLeftColor: alertColor }]}
+                onPress={() => router.push('/alerts' as any)}
+              >
+                <Card.Content style={styles.alertContent}>
+                  <View style={[styles.alertIcon, { backgroundColor: alertColor + '20' }]}>
+                    <IconButton
+                      icon={alertIcon}
+                      iconColor={alertColor}
+                      size={20}
+                      style={{ margin: 0 }}
+                    />
+                  </View>
+                  <View style={styles.alertTextContainer}>
+                    <Text variant="titleSmall" style={{ fontWeight: 'bold' }}>
+                      {alert.category_name}
+                    </Text>
+                    <Text variant="bodySmall" numberOfLines={2} style={{ marginTop: 4 }}>
+                      {alert.message}
+                    </Text>
+                    <View style={styles.alertFooter}>
+                      <Text variant="bodySmall" style={[{ color: alertColor, fontWeight: 'bold' }]}>
+                        {alert.percentage.toFixed(0)}% used
+                      </Text>
+                    </View>
+                  </View>
+                </Card.Content>
+              </Card>
+            );
+          })}
+        </View>
+      )}
 
       {/* Quick Stats Cards */}
       <View style={styles.statsContainer}>
@@ -75,7 +169,7 @@ export default function HomeScreen() {
           Quick Actions
         </Text>
 
-        <Card style={styles.actionCard} onPress={() => router.push('/categories' as any)}>
+        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/categories' as any)}>
           <Card.Content style={styles.actionContent}>
             <View style={[styles.actionIcon, { backgroundColor: theme.colors.primaryContainer }]}>
               <IconButton 
@@ -173,7 +267,7 @@ export default function HomeScreen() {
       </View>
 
       {/* Getting Started Guide */}
-      <View style={styles.section}>
+      {/* <View style={styles.section}>
         <Text variant="titleLarge" style={styles.sectionTitle}>
           Getting Started
         </Text>
@@ -232,7 +326,7 @@ export default function HomeScreen() {
             </View>
           </Card.Content>
         </Card>
-      </View>
+      </View> */}
 
       {/* Account Section */}
       <View style={styles.section}>
@@ -268,34 +362,53 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerContainer: {
-    marginBottom: 16,
-  },
-  headerSurface: {
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    paddingTop: 16,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    paddingBottom: 24,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 24,
-    paddingTop: 8,
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
+    paddingTop: 12,
   },
   welcomeSection: {
     flex: 1,
+    paddingRight: 12,
   },
   welcomeLabel: {
     color: '#FFF',
-    opacity: 0.9,
-    marginBottom: 4,
+    opacity: 0.85,
+    marginBottom: 6,
+    fontSize: 14,
+    letterSpacing: 0.5,
   },
   userName: {
     fontWeight: 'bold',
     color: '#FFF',
+    marginBottom: 4,
+    letterSpacing: 0.3,
+  },
+  greetingSubtext: {
+    color: '#FFF',
+    opacity: 0.75,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarButton: {
     margin: 0,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -332,9 +445,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 24,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sectionTitle: {
     marginBottom: 12,
     fontWeight: '600',
+  },
+  alertCard: {
+    marginBottom: 12,
+    borderRadius: 12,
+  },
+  alertContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: 4,
+  },
+  alertIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  alertTextContainer: {
+    flex: 1,
+  },
+  alertFooter: {
+    marginTop: 8,
   },
   actionCard: {
     marginBottom: 12,
