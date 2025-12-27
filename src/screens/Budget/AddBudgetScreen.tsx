@@ -2,22 +2,22 @@ import Slider from '@react-native-community/slider';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    HelperText,
-    SegmentedButtons,
-    Surface,
-    Text,
-    TextInput,
-    useTheme,
+  ActivityIndicator,
+  Button,
+  HelperText,
+  SegmentedButtons,
+  Surface,
+  Text,
+  TextInput,
+  useTheme,
 } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
 import { budgetService } from '../../api/budgetService';
@@ -366,6 +366,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   buttonContent: {
-    paddingVertical: 8,
+    height: 40,
   },
 });

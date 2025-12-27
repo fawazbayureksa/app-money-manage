@@ -1,20 +1,20 @@
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    ActivityIndicator,
-    Button,
-    HelperText,
-    Surface,
-    Text,
-    TextInput,
-    useTheme,
+  ActivityIndicator,
+  Button,
+  HelperText,
+  Surface,
+  Text,
+  TextInput,
+  useTheme,
 } from 'react-native-paper';
 import { categoryService } from '../../api/categoryService';
 
@@ -152,12 +152,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
     padding: 16,
+    justifyContent: 'center',
+    minHeight: '100%',
   },
   surface: {
-    padding: 24,
+    padding: 20,
     borderRadius: 12,
+    maxWidth: 500,
+    alignSelf: 'center',
+    width: '100%',
   },
   header: {
     marginBottom: 24,
@@ -185,6 +189,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   buttonContent: {
-    paddingVertical: 8,
+    height: 40,
   },
 });

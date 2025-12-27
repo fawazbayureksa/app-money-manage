@@ -1,20 +1,20 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    View,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    ActivityIndicator,
-    Card,
-    FAB,
-    IconButton,
-    Snackbar,
-    Text,
-    useTheme,
+  ActivityIndicator,
+  Card,
+  FAB,
+  IconButton,
+  Snackbar,
+  Text,
+  useTheme,
 } from 'react-native-paper';
 import { Category, categoryService } from '../../api/categoryService';
 
@@ -235,8 +235,8 @@ const styles = StyleSheet.create({
     right: 16,
     bottom: 50,
     backgroundColor: '#4192d5ff',
-    elevation: 8,
-    shadowColor: '#6200EA',
+    elevation: 4,
+    shadowColor: '#8bb0ceff',
     shadowOffset: {
       width: 0,
       height: 4,

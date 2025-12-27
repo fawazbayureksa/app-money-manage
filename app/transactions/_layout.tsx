@@ -9,18 +9,16 @@ export default function TransactionsLayout() {
       }}
     >
       <Stack.Screen
-        name="index"
+        name="Transaction"
         options={{
-          title: 'Transactions',
-          headerShown: true,
-          headerBackTitle: '',
+          headerShown: false,
         }}
       />
       <Stack.Screen
         name="add"
         options={{
           title: 'Add Transaction',
-          headerShown: true,
+          headerShown: false,
           presentation: 'modal',
           headerBackTitle: '',
         }}

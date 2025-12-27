@@ -1,21 +1,21 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-    Alert,
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    View,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View,
 } from 'react-native';
 import {
-    ActivityIndicator,
-    Card,
-    Chip,
-    FAB,
-    IconButton,
-    Snackbar,
-    Text,
-    useTheme,
+  ActivityIndicator,
+  Card,
+  Chip,
+  FAB,
+  IconButton,
+  Snackbar,
+  Text,
+  useTheme,
 } from 'react-native-paper';
 import { Transaction, transactionService } from '../../api/transactionService';
 

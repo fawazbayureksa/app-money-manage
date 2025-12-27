@@ -381,6 +381,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   buttonContent: {
-    paddingVertical: 8,
+    height: 40,
   },
 });

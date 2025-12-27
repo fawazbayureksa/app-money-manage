@@ -11,9 +11,8 @@ export default function CategoriesLayout() {
       <Stack.Screen
         name="index"
         options={{
-          title: 'Categories',
           headerShown: true,
-          headerBackTitle: '',
+          title: 'Categories',
         }}
       />
       <Stack.Screen

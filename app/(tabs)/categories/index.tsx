@@ -1,8 +1,8 @@
 import { Redirect } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
-import { useAuth } from '../../src/context/AuthContext';
-import CategoryListScreen from '../../src/screens/Category/CategoryListScreen';
+import { useAuth } from '../../../src/context/AuthContext';
+import CategoryListScreen from '../../../src/screens/Category/CategoryListScreen';
 
 export default function Categories() {
   const { isAuthenticated, isLoading } = useAuth();
