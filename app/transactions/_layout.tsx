@@ -3,12 +3,17 @@ import React from 'react';
 
 export default function TransactionsLayout() {
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        headerBackTitle: '',
+      }}
+    >
       <Stack.Screen
         name="index"
         options={{
           title: 'Transactions',
           headerShown: true,
+          headerBackTitle: '',
         }}
       />
       <Stack.Screen
@@ -17,6 +22,7 @@ export default function TransactionsLayout() {
           title: 'Add Transaction',
           headerShown: true,
           presentation: 'modal',
+          headerBackTitle: '',
         }}
       />
     </Stack>

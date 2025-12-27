@@ -2,7 +2,11 @@ import { Stack } from 'expo-router';
 
 export default function BudgetsLayout() {
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        headerBackTitle: '',
+      }}
+    >
       <Stack.Screen
         name="index"
         options={{
@@ -14,6 +18,7 @@ export default function BudgetsLayout() {
         options={{
           presentation: 'modal',
           headerTitle: 'Add Budget',
+          headerBackTitle: '',
         }}
       />
     </Stack>

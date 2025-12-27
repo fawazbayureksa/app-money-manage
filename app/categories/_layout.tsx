@@ -3,12 +3,17 @@ import React from 'react';
 
 export default function CategoriesLayout() {
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        headerBackTitle: '',
+      }}
+    >
       <Stack.Screen
         name="index"
         options={{
           title: 'Categories',
           headerShown: true,
+          headerBackTitle: '',
         }}
       />
       <Stack.Screen
@@ -17,6 +22,7 @@ export default function CategoriesLayout() {
           title: 'Add Category',
           headerShown: true,
           presentation: 'modal',
+          headerBackTitle: '',
         }}
       />
     </Stack>
