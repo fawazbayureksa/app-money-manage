@@ -147,7 +147,7 @@ export default function HomeScreen() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.actionCard}>
+        <Card style={styles.actionCard} onPress={() => router.push('/budgets' as any)}>
           <Card.Content style={styles.actionContent}>
             <View style={[styles.actionIcon, { backgroundColor: theme.colors.tertiaryContainer }]}>
               <IconButton 
@@ -160,13 +160,13 @@ export default function HomeScreen() {
             <View style={styles.actionText}>
               <Text variant="titleMedium">Set Budget</Text>
               <Text variant="bodySmall" style={styles.actionDescription}>
-                Create and track spending limits (Coming Soon)
+                Create and track spending limits
               </Text>
             </View>
             <IconButton
               icon="chevron-right"
               size={24}
-              iconColor={theme.colors.outline}
+              iconColor={theme.colors.primary}
             />
           </Card.Content>
         </Card>
@@ -225,9 +225,9 @@ export default function HomeScreen() {
                 </Text>
               </View>
               <IconButton 
-                icon="circle-outline" 
+                icon="check-circle" 
                 size={24} 
-                iconColor={theme.colors.outline}
+                iconColor="#4CAF50"
               />
             </View>
           </Card.Content>
