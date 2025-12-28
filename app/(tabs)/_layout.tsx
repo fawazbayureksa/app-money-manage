@@ -1,9 +1,9 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { alertService } from '@/src/api/alertService';
@@ -20,7 +20,7 @@ function AddButton() {
       onPress={() => router.push('/transactions/add' as any)}
       style={[styles.addButton, { backgroundColor: primaryColor }]}
     >
-      <IconSymbol size={32} name="plus" color="#FFFFFF" />
+      <MaterialCommunityIcons name="plus" size={32} color="#FFFFFF" />
     </Pressable>
   );
 }
@@ -65,14 +65,14 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           headerShown: false,
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="home" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="transactions"
         options={{
           title: 'Transactions',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="list.bullet.rectangle" color={color} />,
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="format-list-bulleted" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -86,7 +86,7 @@ export default function TabLayout() {
         name="budgets"
         options={{
           title: 'Budgets',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="chart.bar.fill" color={color} />,
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="chart-bar" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -95,7 +95,7 @@ export default function TabLayout() {
           title: 'Alerts',
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={24} name="bell.fill" color={color} />
+              <MaterialCommunityIcons name="bell" size={24} color={color} />
               <AlertBadge count={unreadCount} visible={unreadCount > 0} />
             </View>
           ),
