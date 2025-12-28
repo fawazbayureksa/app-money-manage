@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -8,6 +8,22 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { alertService } from '@/src/api/alertService';
 import AlertBadge from '@/src/components/AlertBadge';
+
+// Custom Add Button Component
+function AddButton() {
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const primaryColor = Colors[colorScheme ?? 'light'].tint;
+
+  return (
+    <Pressable
+      onPress={() => router.push('/transactions/add' as any)}
+      style={[styles.addButton, { backgroundColor: primaryColor }]}
+    >
+      <IconSymbol size={32} name="plus" color="#FFFFFF" />
+    </Pressable>
+  );
+}
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -25,10 +41,10 @@ export default function TabLayout() {
 
   useEffect(() => {
     fetchUnreadCount();
-    
+
     // Refresh count every 30 seconds
     const interval = setInterval(fetchUnreadCount, 30000);
-    
+
     return () => clearInterval(interval);
   }, []);
 
@@ -38,27 +54,39 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          height: Platform.OS === 'ios' ? 88 : 64,
+          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          paddingTop: 8,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
           headerShown: false,
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="transactions"
         options={{
           title: 'Transactions',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="list.bullet.rectangle" color={color} />,
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="list.bullet.rectangle" color={color} />,
         }}
       />
       <Tabs.Screen
         name="categories"
         options={{
-          title: 'Categories',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="folder.fill" color={color} />,
+          title: '',
+          tabBarIcon: () => <AddButton />,
+        }}
+      />
+      <Tabs.Screen
+        name="budgets"
+        options={{
+          title: 'Budgets',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="chart.bar.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -67,7 +95,7 @@ export default function TabLayout() {
           title: 'Alerts',
           tabBarIcon: ({ color }) => (
             <View>
-              <IconSymbol size={28} name="bell.fill" color={color} />
+              <IconSymbol size={24} name="bell.fill" color={color} />
               <AlertBadge count={unreadCount} visible={unreadCount > 0} />
             </View>
           ),
@@ -79,13 +107,26 @@ export default function TabLayout() {
           },
         }}
       />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-        }}
-      />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  addButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -20, // Elevate the button above the tab bar
+    marginBottom: 4,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+});

@@ -18,6 +18,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { Transaction, transactionService } from '../../api/transactionService';
+import { formatCurrency, formatDateShort } from '../../utils/formatters';
 
 export default function TransactionListScreen() {
   const theme = useTheme();
@@ -34,12 +35,12 @@ export default function TransactionListScreen() {
   const fetchTransactions = async (showLoader = true) => {
     try {
       if (showLoader) setLoading(true);
-      
+
       const params = filterType !== 'All' ? { transaction_type: filterType } : {};
       const response = await transactionService.getTransactions(params);
-      
+
       console.log('Transactions Response:', JSON.stringify(response, null, 2));
-      
+
       if (response.success && response.data) {
         console.log('Transactions data:', JSON.stringify(response.data, null, 2));
         setTransactions(response.data);
@@ -107,25 +108,6 @@ export default function TransactionListScreen() {
     router.push('/transactions/add' as any);
   };
 
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
   // Render transaction item
   const renderTransactionItem = ({ item }: { item: Transaction }) => {
     const isIncome = item.transaction_type === 1;
@@ -172,7 +154,7 @@ export default function TransactionListScreen() {
               </Chip>
             )}
             <Chip icon="calendar" compact style={styles.chip}>
-              {formatDate(item.date)}
+              {formatDateShort(item.date)}
             </Chip>
           </View>
 
@@ -243,7 +225,7 @@ export default function TransactionListScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {renderFilters()}
-      
+
       <FlatList
         data={transactions}
         renderItem={renderTransactionItem}

@@ -1,43 +1,73 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, Chip, IconButton, Text, useTheme } from 'react-native-paper';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Button, Card, Chip, IconButton, Snackbar, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BudgetAlert, alertService } from '../../api/alertService';
+import { alertService, BudgetAlert } from '../../api/alertService';
+import { analyticsService, DashboardSummary, RecentTransaction } from '../../api/analyticsService';
 import { useAuth } from '../../context/AuthContext';
+import { formatCurrency, formatDateRelative } from '../../utils/formatters';
 
-const { width } = Dimensions.get('window');
+
 
 export default function HomeScreen() {
   const theme = useTheme();
   const { user, logout, isAuthenticated } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [recentAlerts, setRecentAlerts] = useState<BudgetAlert[]>([]);
 
-  // Fetch recent alerts
-  const fetchRecentAlerts = async () => {
-    // Only fetch if user is authenticated
-    if (!isAuthenticated) {
-      return;
-    }
+  const [recentAlerts, setRecentAlerts] = useState<BudgetAlert[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<RecentTransaction[]>([]);
+  const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+
+  // Fetch all dashboard data
+  const fetchDashboardData = useCallback(async (showLoader = true) => {
+    if (!isAuthenticated) return;
 
     try {
-      const response = await alertService.getAlerts({ unread_only: true });
-      if (response.success && response.data) {
-        // Get only the 3 most recent alerts
-        setRecentAlerts(response.data.slice(0, 3));
+      if (showLoader) setLoading(true);
+
+      // Fetch dashboard analytics and alerts
+      const [analyticsResponse, alertsResponse] = await Promise.all([
+        analyticsService.getDashboardSummary(),
+        alertService.getAlerts({ unread_only: true }),
+      ]);
+
+      if (analyticsResponse.success && analyticsResponse.data) {
+        setDashboardData(analyticsResponse.data);
+        // Recent transactions are now included in the analytics response
+        setRecentTransactions(analyticsResponse.data.recent_transactions || []);
       }
-    } catch (error) {
-      console.error('Error fetching alerts:', error);
+
+      if (alertsResponse.success && alertsResponse.data) {
+        setRecentAlerts(alertsResponse.data.slice(0, 3));
+      }
+    } catch (error: any) {
+      console.error('Error fetching dashboard data:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to load dashboard data';
+      setSnackbarMessage(errorMessage);
+      setSnackbarVisible(true);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [isAuthenticated]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchRecentAlerts();
-    }, [isAuthenticated])
+      fetchDashboardData();
+    }, [fetchDashboardData])
   );
+
+  // Handle pull to refresh
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchDashboardData(false);
+  };
 
   const handleLogout = async () => {
     try {
@@ -60,8 +90,29 @@ export default function HomeScreen() {
     return 'information';
   };
 
+  // Show loading state
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text variant="bodyMedium" style={{ marginTop: 16, color: theme.colors.onSurface }}>
+          Loading dashboard...
+        </Text>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[theme.colors.primary]}
+        />
+      }
+    >
       {/* Welcome Header */}
       <View style={[styles.headerContainer, { paddingTop: insets.top + 16, backgroundColor: theme.colors.primary }]}>
         <View style={styles.headerContent}>
@@ -73,7 +124,7 @@ export default function HomeScreen() {
               {user?.username || user?.email?.split('@')[0] || 'User'}
             </Text>
             <Text variant="bodyMedium" style={styles.greetingSubtext}>
-              Let's manage your finances today 💰
+              Let&apos;s manage your finances today 💰
             </Text>
           </View>
           <View style={styles.avatarContainer}>
@@ -86,6 +137,79 @@ export default function HomeScreen() {
           </View>
         </View>
       </View>
+
+      {/* Quick Stats Cards */}
+      {dashboardData ? (
+        <View style={styles.statsContainer}>
+          <Card style={[styles.statCard, { backgroundColor: '#4CAF50' }]}>
+            <Card.Content style={styles.statContent}>
+              <IconButton icon="arrow-up" size={32} iconColor="#FFF" style={styles.statIcon} />
+              <View style={styles.statTextContainer}>
+                <Text variant="labelMedium" style={styles.statLabel}>
+                  Income
+                </Text>
+                <Text variant="headlineSmall" style={styles.statValue}>
+                  {formatCurrency(dashboardData.current_month.total_income)}
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+
+          <Card style={[styles.statCard, { backgroundColor: '#F44336' }]}>
+            <Card.Content style={styles.statContent}>
+              <IconButton icon="arrow-down" size={32} iconColor="#FFF" style={styles.statIcon} />
+              <View style={styles.statTextContainer}>
+                <Text variant="labelMedium" style={styles.statLabel}>
+                  Expenses
+                </Text>
+                <Text variant="headlineSmall" style={styles.statValue}>
+                  {formatCurrency(dashboardData.current_month.total_expense)}
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+        </View>
+      ) : (
+        <View style={styles.statsContainer}>
+          <Card style={[styles.statCard, { backgroundColor: theme.colors.surfaceVariant }]}>
+            <Card.Content style={styles.statContent}>
+              <Text variant="bodyMedium" style={{ opacity: 0.6 }}>No data available</Text>
+            </Card.Content>
+          </Card>
+        </View>
+      )}
+
+      {/* Additional Stats */}
+      {dashboardData && (
+        <View style={styles.additionalStats}>
+          <Card style={styles.additionalStatCard}>
+            <Card.Content style={styles.additionalStatContent}>
+              <View style={styles.additionalStatItem}>
+                <IconButton icon="wallet-outline" size={24} iconColor={theme.colors.primary} />
+                <View>
+                  <Text variant="bodySmall" style={styles.additionalStatLabel}>
+                    Net Savings
+                  </Text>
+                  <Text variant="titleMedium" style={{ fontWeight: 'bold', color: dashboardData.current_month.net_amount >= 0 ? '#4CAF50' : '#F44336' }}>
+                    {formatCurrency(dashboardData.current_month.net_amount)}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.additionalStatItem}>
+                <IconButton icon="chart-bar" size={24} iconColor={theme.colors.primary} />
+                <View>
+                  <Text variant="bodySmall" style={styles.additionalStatLabel}>
+                    Active Budgets
+                  </Text>
+                  <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
+                    {dashboardData.budget_summary.active_budgets}
+                  </Text>
+                </View>
+              </View>
+            </Card.Content>
+          </Card>
+        </View>
+      )}
 
       {/* Recent Alerts Section */}
       {recentAlerts.length > 0 && (
@@ -106,9 +230,9 @@ export default function HomeScreen() {
           {recentAlerts.map((alert) => {
             const alertColor = getAlertColor(alert.percentage);
             const alertIcon = getAlertIcon(alert.percentage);
-            
+
             return (
-              <Card 
+              <Card
                 key={alert.id}
                 style={[styles.alertCard, { borderLeftWidth: 4, borderLeftColor: alertColor }]}
                 onPress={() => router.push('/alerts' as any)}
@@ -142,36 +266,79 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Quick Stats Cards */}
-      <View style={styles.statsContainer}>
-        <Card style={[styles.statCard, { backgroundColor: '#4CAF50' }]}>
-          <Card.Content style={styles.statContent}>
-            <IconButton icon="folder" size={32} iconColor="#FFF" style={styles.statIcon} />
-            <View style={styles.statTextContainer}>
-              <Text variant="labelMedium" style={styles.statLabel}>
-                Categories
-              </Text>
-              <Text variant="headlineSmall" style={styles.statValue}>
-                View
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
+      {/* Recent Transactions */}
+      {recentTransactions.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Recent Transactions
+            </Text>
+            <Chip
+              icon="format-list-bulleted"
+              compact
+              onPress={() => router.push('/transactions' as any)}
+            >
+              View All
+            </Chip>
+          </View>
 
-        <Card style={[styles.statCard, { backgroundColor: '#2196F3' }]} onPress={() => router.push('/transactions' as any)}>
-          <Card.Content style={styles.statContent}>
-            <IconButton icon="chart-line" size={32} iconColor="#FFF" style={styles.statIcon} />
-            <View style={styles.statTextContainer}>
-              <Text variant="labelMedium" style={styles.statLabel}>
-                Transactions
-              </Text>
-              <Text variant="headlineSmall" style={styles.statValue}>
-                View
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
-      </View>
+          {recentTransactions.map((transaction) => {
+            const isIncome = transaction.transaction_type === 1;
+            const typeColor = isIncome ? '#4CAF50' : '#F44336';
+
+            return (
+              <Card key={transaction.id} style={styles.transactionCard}>
+                <Card.Content style={styles.transactionContent}>
+                  <View style={[styles.transactionIcon, { backgroundColor: typeColor + '20' }]}>
+                    <IconButton
+                      icon={isIncome ? 'arrow-up' : 'arrow-down'}
+                      iconColor={typeColor}
+                      size={20}
+                      style={{ margin: 0 }}
+                    />
+                  </View>
+                  <View style={styles.transactionInfo}>
+                    <Text variant="titleSmall" style={{ fontWeight: 'bold' }}>
+                      {transaction.category_name || 'No Category'}
+                    </Text>
+                    <Text variant="bodySmall" style={{ opacity: 0.6 }}>
+                      {formatDateRelative(transaction.date)}
+                    </Text>
+                  </View>
+                  <Text variant="titleMedium" style={[{ fontWeight: 'bold', color: typeColor }]}>
+                    {isIncome ? '+' : '-'}{formatCurrency(transaction.amount)}
+                  </Text>
+                </Card.Content>
+              </Card>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Empty State */}
+      {!dashboardData && recentTransactions.length === 0 && (
+        <View style={styles.emptyState}>
+          <IconButton
+            icon="chart-line"
+            size={80}
+            iconColor={theme.colors.outline}
+          />
+          <Text variant="headlineSmall" style={styles.emptyTitle}>
+            No Data Yet
+          </Text>
+          <Text variant="bodyMedium" style={styles.emptyText}>
+            Start by adding your first transaction or budget
+          </Text>
+          <Button
+            mode="contained"
+            onPress={() => router.push('/transactions/add' as any)}
+            style={{ marginTop: 16 }}
+            icon="plus"
+          >
+            Add Transaction
+          </Button>
+        </View>
+      )}
 
       {/* Quick Actions */}
       <View style={styles.section}>
@@ -179,60 +346,12 @@ export default function HomeScreen() {
           Quick Actions
         </Text>
 
-        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/categories' as any)}>
-          <Card.Content style={styles.actionContent}>
-            <View style={[styles.actionIcon, { backgroundColor: theme.colors.primaryContainer }]}>
-              <IconButton 
-                icon="folder-multiple" 
-                size={28} 
-                iconColor={theme.colors.primary}
-                style={{ margin: 0 }}
-              />
-            </View>
-            <View style={styles.actionText}>
-              <Text variant="titleMedium">Manage Categories</Text>
-              <Text variant="bodySmall" style={styles.actionDescription}>
-                Create and organize your expense categories
-              </Text>
-            </View>
-            <IconButton
-              icon="chevron-right"
-              size={24}
-              iconColor={theme.colors.primary}
-            />
-          </Card.Content>
-        </Card>
-
-        <Card style={styles.actionCard} onPress={() => router.push('/transactions' as any)}>
-          <Card.Content style={styles.actionContent}>
-            <View style={[styles.actionIcon, { backgroundColor: theme.colors.secondaryContainer }]}>
-              <IconButton 
-                icon="format-list-bulleted" 
-                size={28} 
-                iconColor={theme.colors.secondary}
-                style={{ margin: 0 }}
-              />
-            </View>
-            <View style={styles.actionText}>
-              <Text variant="titleMedium">View Transactions</Text>
-              <Text variant="bodySmall" style={styles.actionDescription}>
-                See all your income and expenses
-              </Text>
-            </View>
-            <IconButton
-              icon="chevron-right"
-              size={24}
-              iconColor={theme.colors.primary}
-            />
-          </Card.Content>
-        </Card>
-
         <Card style={styles.actionCard} onPress={() => router.push('/transactions/add' as any)}>
           <Card.Content style={styles.actionContent}>
             <View style={[styles.actionIcon, { backgroundColor: '#4CAF5020' }]}>
-              <IconButton 
-                icon="plus-circle" 
-                size={28} 
+              <IconButton
+                icon="plus-circle"
+                size={28}
                 iconColor="#4CAF50"
                 style={{ margin: 0 }}
               />
@@ -254,15 +373,15 @@ export default function HomeScreen() {
         <Card style={styles.actionCard} onPress={() => router.push('/budgets' as any)}>
           <Card.Content style={styles.actionContent}>
             <View style={[styles.actionIcon, { backgroundColor: theme.colors.tertiaryContainer }]}>
-              <IconButton 
-                icon="wallet-outline" 
-                size={28} 
+              <IconButton
+                icon="wallet-outline"
+                size={28}
                 iconColor={theme.colors.tertiary}
                 style={{ margin: 0 }}
               />
             </View>
             <View style={styles.actionText}>
-              <Text variant="titleMedium">Set Budget</Text>
+              <Text variant="titleMedium">Manage Budgets</Text>
               <Text variant="bodySmall" style={styles.actionDescription}>
                 Create and track spending limits
               </Text>
@@ -274,69 +393,31 @@ export default function HomeScreen() {
             />
           </Card.Content>
         </Card>
-      </View>
 
-      {/* Getting Started Guide */}
-      {/* <View style={styles.section}>
-        <Text variant="titleLarge" style={styles.sectionTitle}>
-          Getting Started
-        </Text>
-        
-        <Card style={styles.infoCard}>
-          <Card.Content>
-            <View style={styles.stepItem}>
-              <View style={[styles.stepNumber, { backgroundColor: theme.colors.primaryContainer }]}>
-                <Text variant="labelLarge" style={{ color: theme.colors.primary, fontWeight: 'bold' }}>1</Text>
-              </View>
-              <View style={styles.stepText}>
-                <Text variant="bodyLarge" style={{ fontWeight: '600' }}>Create Categories</Text>
-                <Text variant="bodySmall" style={styles.stepDescription}>
-                  Set up expense categories like Food, Transport, etc.
-                </Text>
-              </View>
-              <IconButton 
-                icon="check-circle" 
-                size={24} 
-                iconColor="#4CAF50"
+        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/categories' as any)}>
+          <Card.Content style={styles.actionContent}>
+            <View style={[styles.actionIcon, { backgroundColor: theme.colors.primaryContainer }]}>
+              <IconButton
+                icon="folder-multiple"
+                size={28}
+                iconColor={theme.colors.primary}
+                style={{ margin: 0 }}
               />
             </View>
-
-            <View style={styles.stepItem}>
-              <View style={[styles.stepNumber, { backgroundColor: theme.colors.secondaryContainer }]}>
-                <Text variant="labelLarge" style={{ color: theme.colors.secondary, fontWeight: 'bold' }}>2</Text>
-              </View>
-              <View style={styles.stepText}>
-                <Text variant="bodyLarge" style={{ fontWeight: '600' }}>Track Transactions</Text>
-                <Text variant="bodySmall" style={styles.stepDescription}>
-                  Add your daily income and expenses
-                </Text>
-              </View>
-              <IconButton 
-                icon="check-circle" 
-                size={24} 
-                iconColor="#4CAF50"
-              />
+            <View style={styles.actionText}>
+              <Text variant="titleMedium">Manage Categories</Text>
+              <Text variant="bodySmall" style={styles.actionDescription}>
+                Organize your expense categories
+              </Text>
             </View>
-
-            <View style={styles.stepItem}>
-              <View style={[styles.stepNumber, { backgroundColor: theme.colors.tertiaryContainer }]}>
-                <Text variant="labelLarge" style={{ color: theme.colors.tertiary, fontWeight: 'bold' }}>3</Text>
-              </View>
-              <View style={styles.stepText}>
-                <Text variant="bodyLarge" style={{ fontWeight: '600' }}>Monitor Budgets</Text>
-                <Text variant="bodySmall" style={styles.stepDescription}>
-                  Stay on top of your spending goals
-                </Text>
-              </View>
-              <IconButton 
-                icon="check-circle" 
-                size={24} 
-                iconColor="#4CAF50"
-              />
-            </View>
+            <IconButton
+              icon="chevron-right"
+              size={24}
+              iconColor={theme.colors.primary}
+            />
           </Card.Content>
         </Card>
-      </View> */}
+      </View>
 
       {/* Account Section */}
       <View style={styles.section}>
@@ -349,8 +430,8 @@ export default function HomeScreen() {
                   {user?.email}
                 </Text>
               </View>
-              <Button 
-                mode="outlined" 
+              <Button
+                mode="outlined"
                 onPress={handleLogout}
                 icon="logout"
                 compact
@@ -363,6 +444,18 @@ export default function HomeScreen() {
       </View>
 
       <View style={{ height: 24 }} />
+
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={3000}
+        action={{
+          label: 'Dismiss',
+          onPress: () => setSnackbarVisible(false),
+        }}
+      >
+        {snackbarMessage}
+      </Snackbar>
     </ScrollView>
   );
 }
@@ -370,6 +463,10 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   headerContainer: {
     borderBottomLeftRadius: 28,
@@ -424,7 +521,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
@@ -449,7 +546,28 @@ const styles = StyleSheet.create({
   statValue: {
     color: '#FFF',
     fontWeight: 'bold',
-    fontSize: 18,
+    fontSize: 14,
+  },
+  additionalStats: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  additionalStatCard: {
+    borderRadius: 16,
+  },
+  additionalStatContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 8,
+  },
+  additionalStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  additionalStatLabel: {
+    opacity: 0.6,
+    marginBottom: 2,
   },
   section: {
     paddingHorizontal: 16,
@@ -488,6 +606,42 @@ const styles = StyleSheet.create({
   alertFooter: {
     marginTop: 8,
   },
+  transactionCard: {
+    marginBottom: 12,
+    borderRadius: 12,
+  },
+  transactionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 4,
+  },
+  transactionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  transactionInfo: {
+    flex: 1,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    marginTop: 32,
+  },
+  emptyTitle: {
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyText: {
+    textAlign: 'center',
+    opacity: 0.7,
+    maxWidth: 300,
+  },
   actionCard: {
     marginBottom: 12,
     borderRadius: 12,
@@ -512,29 +666,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     marginTop: 2,
   },
-  infoCard: {
-    borderRadius: 12,
-  },
-  stepItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  stepNumber: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  stepText: {
-    flex: 1,
-  },
-  stepDescription: {
-    opacity: 0.6,
-    marginTop: 2,
-  },
   accountCard: {
     borderRadius: 12,
   },
@@ -548,3 +679,4 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+
