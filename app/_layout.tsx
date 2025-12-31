@@ -2,11 +2,15 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { PaperProvider } from 'react-native-paper';
+import { enGB, registerTranslation } from 'react-native-paper-dates';
 import 'react-native-reanimated';
 
 import { darkTheme, lightTheme } from '@/constants/paper-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { OfflineAuthProvider } from '../src/context/OfflineAuthContext';
+
+// Register date picker locale
+registerTranslation('en', enGB);
 
 export const unstable_settings = {
   anchor: '(tabs)',
