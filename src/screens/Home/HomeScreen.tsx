@@ -140,7 +140,7 @@ export default function HomeScreen() {
               Welcome back
             </Text>
             <Text variant="headlineLarge" style={[styles.userName, { color: '#FFF' }]}>
-              {userData?.name || userData?.email?.split('@')[0] || 'Local User'}
+              {userData?.name || userData?.email?.split('@')[0] || 'Money Manager'}
             </Text>
             <Text variant="bodyMedium" style={styles.greetingSubtext}>
               Let&apos;s manage your finances today 💰
@@ -321,7 +321,7 @@ export default function HomeScreen() {
                       {transaction.category_name || 'No Category'}
                     </Text>
                     <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-                      {formatDateRelative(transaction.transaction_date)}
+                      {formatDateRelative(transaction.date)}
                     </Text>
                   </View>
                   <Text variant="titleMedium" style={[{ fontWeight: 'bold', color: typeColor }]}>
@@ -470,14 +470,14 @@ export default function HomeScreen() {
               <View style={{ flex: 1 }}>
                 <Text variant="titleMedium" style={{ fontWeight: '600' }}>Account</Text>
                 <Text variant="bodySmall" style={styles.accountEmail}>
-                  {userData?.email || userData?.name || 'Here'}
+                  {userData?.email || userData?.name || 'You'}
                 </Text>
               </View>
-              <IconButton
+              {/* <IconButton
                 icon="cog"
                 size={24}
                 onPress={() => router.push('/modal' as any)}
-              />
+              /> */}
             </View>
           </Card.Content>
         </Card>
