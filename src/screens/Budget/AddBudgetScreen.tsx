@@ -20,8 +20,8 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
-import { budgetService } from '../../api/budgetService';
-import { Category, categoryService } from '../../api/categoryService';
+import { budgetRepository } from '../../database/BudgetRepository';
+import { Category, categoryRepository } from '../../database/CategoryRepository';
 
 export default function AddBudgetScreen() {
   const theme = useTheme();
@@ -49,11 +49,8 @@ export default function AddBudgetScreen() {
   const loadCategories = async () => {
     try {
       setLoadingData(true);
-      const response = await categoryService.getCategories();
-
-      if (response.success && response.data) {
-        setCategories(response.data);
-      }
+      const data = await categoryRepository.findAll();
+      setCategories(data);
     } catch (error) {
       console.error('Error loading categories:', error);
       Alert.alert('Error', 'Failed to load categories');
@@ -84,33 +81,24 @@ export default function AddBudgetScreen() {
     try {
       setLoading(true);
 
-      const budgetData = {
+      await budgetRepository.create({
         category_id: selectedCategory!,
         amount: parseFloat(amount),
         period,
         start_date: startDate.toISOString().split('T')[0],
         alert_at: alertThreshold,
-      };
+        is_active: true,
+      });
 
-      const response = await budgetService.createBudget(budgetData);
-
-      if (response.success) {
-        Alert.alert('Success', 'Budget created successfully', [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]);
-      } else {
-        Alert.alert('Error', response.message || 'Failed to create budget');
-      }
+      Alert.alert('Success', 'Budget created successfully', [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ]);
     } catch (error: any) {
       console.error('Error creating budget:', error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to create budget. Please try again.';
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Error', 'Failed to create budget. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -155,16 +143,16 @@ export default function AddBudgetScreen() {
             <View style={styles.pickerContainer}>
               {categories.map((category) => (
                 <Button
-                  key={category.ID}
-                  mode={selectedCategory === category.ID ? 'contained' : 'outlined'}
+                  key={category.remote_id}
+                  mode={selectedCategory === category.remote_id ? 'contained' : 'outlined'}
                   onPress={() => {
-                    setSelectedCategory(category.ID);
+                    setSelectedCategory(category.remote_id);
                     setErrors({ ...errors, category: '' });
                   }}
                   style={styles.pickerButton}
                   compact
                 >
-                  {category.CategoryName}
+                  {category.category_name}
                 </Button>
               ))}
             </View>

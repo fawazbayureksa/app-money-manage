@@ -45,9 +45,10 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Handle network errors
+    // Handle network errors (expected in offline-first mode)
     if (!error.response) {
-      console.error('Network error:', error.message);
+      // Silently handle network errors - offline-first architecture
+      // console.debug('Network error (offline mode):', error.message);
     }
 
     return Promise.reject(error);

@@ -6,21 +6,22 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { HapticTab } from '@/components/haptic-tab';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { alertService } from '@/src/api/alertService';
 import AlertBadge from '@/src/components/AlertBadge';
+import { budgetAlertRepository } from '@/src/database/BudgetAlertRepository';
 
 // Custom Add Button Component
 function AddButton() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const primaryColor = Colors[colorScheme ?? 'light'].tint;
+  const iconColor = colorScheme === 'dark' ? '#000000' : '#FFFFFF';
 
   return (
     <Pressable
       onPress={() => router.push('/transactions/add' as any)}
       style={[styles.addButton, { backgroundColor: primaryColor }]}
     >
-      <MaterialCommunityIcons name="plus" size={32} color="#FFFFFF" />
+      <MaterialCommunityIcons name="plus" size={32} color={iconColor} />
     </Pressable>
   );
 }
@@ -29,13 +30,14 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fetch unread count
+  // Fetch unread count from local database
   const fetchUnreadCount = async () => {
     try {
-      const count = await alertService.getUnreadCount();
+      const count = await budgetAlertRepository.getUnreadCount();
       setUnreadCount(count);
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      // Silently handle - offline-first architecture
+      console.debug('Error fetching unread count:', error);
     }
   };
 

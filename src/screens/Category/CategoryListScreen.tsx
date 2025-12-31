@@ -1,43 +1,39 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  ActivityIndicator,
-  Card,
-  FAB,
-  IconButton,
-  Snackbar,
-  Text,
-  useTheme,
+    ActivityIndicator,
+    Card,
+    FAB,
+    IconButton,
+    Snackbar,
+    Text,
+    useTheme,
 } from 'react-native-paper';
-import { Category, categoryService } from '../../api/categoryService';
+import { categoryRepository } from '../../database/CategoryRepository';
 
 export default function CategoryListScreen() {
   const theme = useTheme();
   const router = useRouter();
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
-  // Fetch categories
+  // Fetch categories from local database (master data)
   const fetchCategories = async (showLoader = true) => {
     try {
       if (showLoader) setLoading(true);
-      const response = await categoryService.getCategories();
-      console.log('API Response:', JSON.stringify(response, null, 2));
-      if (response.success && response.data) {
-        console.log('Categories data:', JSON.stringify(response.data, null, 2));
-        setCategories(response.data);
-      }
+      const data = await categoryRepository.findAll();
+      setCategories(data);
     } catch (error: any) {
       console.error('Error fetching categories:', error);
       const errorMessage =
@@ -64,36 +60,37 @@ export default function CategoryListScreen() {
   };
 
   // Handle delete category
-  const handleDelete = (category: Category) => {
-    Alert.alert(
-      'Delete Category',
-      `Are you sure you want to delete "${category.CategoryName}"?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await categoryService.deleteCategory(category.ID);
-              if (response.success) {
-                setSnackbarMessage('Category deleted successfully');
+  const handleDelete = (category: any) => {
+    // Check if it's a locally created category (negative remote_id)
+    if (category.remote_id < 0) {
+      Alert.alert(
+        'Delete Category',
+        `Are you sure you want to delete "${category.category_name}"?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                // Note: Since delete is overridden, we'll need to implement soft delete
+                setSnackbarMessage('Local category deletion coming soon');
                 setSnackbarVisible(true);
-                fetchCategories(false);
+              } catch (error) {
+                setSnackbarMessage('Failed to delete category');
+                setSnackbarVisible(true);
               }
-            } catch (error: any) {
-              console.error('Error deleting category:', error);
-              const errorMessage =
-                error.response?.data?.message || 'Failed to delete category';
-              Alert.alert('Error', errorMessage);
-            }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Cannot Delete',
+        'Categories synchronized from the backend cannot be deleted locally.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   // Navigate to add category screen
@@ -102,18 +99,18 @@ export default function CategoryListScreen() {
   };
 
   // Render category item
-  const renderCategoryItem = ({ item }: { item: Category }) => (
+  const renderCategoryItem = ({ item }: { item: any }) => (
     <Card style={styles.card}>
       <Card.Content style={styles.cardContent}>
         <View style={styles.categoryInfo}>
-          <Text variant="titleMedium">{item.CategoryName}</Text>
+          <Text variant="titleMedium">{item.category_name}</Text>
           <Text variant="bodySmall" style={styles.dateText}>
-            {item.Description}
+            Synced from backend • {item.type === 1 ? 'Income' : 'Expense'}
           </Text>
         </View>
         <IconButton
-          icon="delete"
-          iconColor={theme.colors.error}
+          icon="information"
+          iconColor={theme.colors.primary}
           size={24}
           onPress={() => handleDelete(item)}
         />
@@ -147,7 +144,7 @@ export default function CategoryListScreen() {
       <FlatList
         data={categories}
         renderItem={renderCategoryItem}
-        keyExtractor={(item, index) => item?.ID?.toString() || `category-${index}`}
+        keyExtractor={(item, index) => item?.remote_id?.toString() || `category-${index}`}
         contentContainerStyle={[
           styles.listContent,
           categories.length === 0 && styles.emptyListContent,

@@ -6,7 +6,7 @@ import 'react-native-reanimated';
 
 import { darkTheme, lightTheme } from '@/constants/paper-theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { AuthProvider } from '../src/context/AuthContext';
+import { OfflineAuthProvider } from '../src/context/OfflineAuthContext';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -17,7 +17,7 @@ export default function RootLayout() {
 
   return (
     <PaperProvider theme={colorScheme === 'dark' ? darkTheme : lightTheme}>
-      <AuthProvider>
+      <OfflineAuthProvider>
         <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
           <Stack>
             <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -29,7 +29,7 @@ export default function RootLayout() {
           </Stack>
           <StatusBar style="auto" />
         </ThemeProvider>
-      </AuthProvider>
+      </OfflineAuthProvider>
     </PaperProvider>
   );
 }

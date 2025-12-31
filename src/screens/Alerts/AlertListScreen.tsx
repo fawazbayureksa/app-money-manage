@@ -15,33 +15,29 @@ import {
     Text,
     useTheme,
 } from 'react-native-paper';
-import { BudgetAlert, alertService } from '../../api/alertService';
+import { budgetAlertRepository } from '../../database/BudgetAlertRepository';
 
 export default function AlertListScreen() {
   const theme = useTheme();
   const router = useRouter();
 
-  const [alerts, setAlerts] = useState<BudgetAlert[]>([]);
+  const [alerts, setAlerts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'unread'>('all');
 
-  // Fetch alerts
+  // Fetch alerts from local database
   const fetchAlerts = async (showLoader = true) => {
     try {
       if (showLoader) setLoading(true);
       
-      const params = filterType === 'unread' ? { unread_only: true } : {};
-      const response = await alertService.getAlerts(params);
+      const data = await budgetAlertRepository.findAllWithOptions({
+        is_read: filterType === 'unread' ? false : undefined,
+      });
       
-      console.log('Alerts Response:', JSON.stringify(response, null, 2));
-      
-      if (response.success && response.data) {
-        console.log('Alerts data:', JSON.stringify(response.data, null, 2));
-        setAlerts(Array.isArray(response.data) ? response.data : []);
-      }
+      setAlerts(data);
     } catch (error: any) {
       console.error('Error fetching alerts:', error);
       const errorMessage =
@@ -68,19 +64,15 @@ export default function AlertListScreen() {
   };
 
   // Mark alert as read
-  const handleMarkAsRead = async (alertId: number) => {
+  const handleMarkAsRead = async (alertId: string) => {
     try {
-      const response = await alertService.markAsRead(alertId);
-      if (response.success) {
-        setSnackbarMessage('Alert marked as read');
-        setSnackbarVisible(true);
-        fetchAlerts(false);
-      }
+      await budgetAlertRepository.markAsRead(alertId);
+      setSnackbarMessage('Alert marked as read');
+      setSnackbarVisible(true);
+      fetchAlerts(false);
     } catch (error: any) {
       console.error('Error marking alert as read:', error);
-      const errorMessage =
-        error.response?.data?.message || 'Failed to mark alert as read';
-      setSnackbarMessage(errorMessage);
+      setSnackbarMessage('Failed to mark alert as read');
       setSnackbarVisible(true);
     }
   };
@@ -130,7 +122,7 @@ export default function AlertListScreen() {
   };
 
   // Render alert item
-  const renderAlertItem = ({ item }: { item: BudgetAlert }) => {
+  const renderAlertItem = ({ item }: { item: any }) => {
     const alertColor = getAlertColor(item.percentage);
     const alertIcon = getAlertIcon(item.percentage);
 
@@ -271,7 +263,7 @@ export default function AlertListScreen() {
       <FlatList
         data={alerts}
         renderItem={renderAlertItem}
-        keyExtractor={(item, index) => item?.id?.toString() || `alert-${index}`}
+        keyExtractor={(item, index) => item?.local_id || `alert-${index}`}
         contentContainerStyle={[
           styles.listContent,
           alerts.length === 0 && styles.emptyListContent,

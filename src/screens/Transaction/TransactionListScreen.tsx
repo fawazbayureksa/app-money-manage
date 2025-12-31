@@ -1,23 +1,23 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  ActivityIndicator,
-  Card,
-  Chip,
-  FAB,
-  IconButton,
-  Snackbar,
-  Text,
-  useTheme,
+    ActivityIndicator,
+    Card,
+    Chip,
+    FAB,
+    IconButton,
+    Snackbar,
+    Text,
+    useTheme,
 } from 'react-native-paper';
-import { Transaction, transactionService } from '../../api/transactionService';
+import { Transaction, TransactionFilter, transactionRepository } from '../../database/TransactionRepository';
 import { formatCurrency, formatDateShort } from '../../utils/formatters';
 
 export default function TransactionListScreen() {
@@ -31,25 +31,23 @@ export default function TransactionListScreen() {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [filterType, setFilterType] = useState<'All' | 'Income' | 'Expense'>('All');
 
-  // Fetch transactions
+  // Fetch transactions from local database
   const fetchTransactions = async (showLoader = true) => {
     try {
       if (showLoader) setLoading(true);
 
-      const params = filterType !== 'All' ? { transaction_type: filterType } : {};
-      const response = await transactionService.getTransactions(params);
-
-      console.log('Transactions Response:', JSON.stringify(response, null, 2));
-
-      if (response.success && response.data) {
-        console.log('Transactions data:', JSON.stringify(response.data, null, 2));
-        setTransactions(response.data);
+      const filter: TransactionFilter = {};
+      if (filterType === 'Income') {
+        filter.transactionType = 1;
+      } else if (filterType === 'Expense') {
+        filter.transactionType = 2;
       }
+
+      const data = await transactionRepository.findWithFilters(filter);
+      setTransactions(data);
     } catch (error: any) {
       console.error('Error fetching transactions:', error);
-      const errorMessage =
-        error.response?.data?.message || 'Failed to load transactions';
-      setSnackbarMessage(errorMessage);
+      setSnackbarMessage('Failed to load transactions');
       setSnackbarVisible(true);
     } finally {
       setLoading(false);
@@ -85,17 +83,13 @@ export default function TransactionListScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await transactionService.deleteTransaction(transaction.id);
-              if (response.success) {
-                setSnackbarMessage('Transaction deleted successfully');
-                setSnackbarVisible(true);
-                fetchTransactions(false);
-              }
+              await transactionRepository.delete(transaction.local_id);
+              setSnackbarMessage('Transaction deleted successfully');
+              setSnackbarVisible(true);
+              fetchTransactions(false);
             } catch (error: any) {
               console.error('Error deleting transaction:', error);
-              const errorMessage =
-                error.response?.data?.message || 'Failed to delete transaction';
-              Alert.alert('Error', errorMessage);
+              Alert.alert('Error', 'Failed to delete transaction');
             }
           },
         },
@@ -229,7 +223,7 @@ export default function TransactionListScreen() {
       <FlatList
         data={transactions}
         renderItem={renderTransactionItem}
-        keyExtractor={(item, index) => item?.id?.toString() || `transaction-${index}`}
+        keyExtractor={(item, index) => item?.local_id || `transaction-${index}`}
         contentContainerStyle={[
           styles.listContent,
           transactions.length === 0 && styles.emptyListContent,

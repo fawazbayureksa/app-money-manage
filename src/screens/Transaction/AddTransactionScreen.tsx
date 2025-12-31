@@ -19,9 +19,9 @@ import {
     useTheme,
 } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
-import { Bank, bankService } from '../../api/bankService';
-import { Category, categoryService } from '../../api/categoryService';
-import { transactionService } from '../../api/transactionService';
+import { Bank, bankRepository } from '../../database/BankRepository';
+import { Category, categoryRepository } from '../../database/CategoryRepository';
+import { transactionRepository } from '../../database/TransactionRepository';
 
 export default function AddTransactionScreen() {
   const theme = useTheme();
@@ -51,17 +51,13 @@ export default function AddTransactionScreen() {
   const loadData = async () => {
     try {
       setLoadingData(true);
-      const [categoriesRes, banksRes] = await Promise.all([
-        categoryService.getCategories(),
-        bankService.getBanks(),
+      const [categoriesData, banksData] = await Promise.all([
+        categoryRepository.findAll(),
+        bankRepository.findAll(),
       ]);
 
-      if (categoriesRes.success && categoriesRes.data) {
-        setCategories(categoriesRes.data);
-      }
-      if (banksRes.success && banksRes.data?.data) {
-        setBanks(banksRes.data.data);
-      }
+      setCategories(categoriesData);
+      setBanks(banksData);
     } catch (error) {
       console.error('Error loading data:', error);
       Alert.alert('Error', 'Failed to load categories and banks');
@@ -95,34 +91,24 @@ export default function AddTransactionScreen() {
     try {
       setLoading(true);
 
-      const transactionData = {
-        BankID: selectedBank!,
-        CategoryID: selectedCategory!,
-        Amount: parseFloat(amount),
-        Description: description.trim(),
-        Date: date.toISOString(),
-        TransactionType: transactionType,
-      };
+      await transactionRepository.create({
+        bank_id: selectedBank!,
+        category_id: selectedCategory!,
+        amount: parseFloat(amount),
+        description: description.trim(),
+        date: date.toISOString(),
+        transaction_type: transactionType === 'Income' ? 1 : 2,
+      });
 
-      const response = await transactionService.createTransaction(transactionData);
-
-      if (response.success) {
-        Alert.alert('Success', 'Transaction created successfully', [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]);
-      } else {
-        Alert.alert('Error', response.message || 'Failed to create transaction');
-      }
+      Alert.alert('Success', 'Transaction created successfully', [
+        {
+          text: 'OK',
+          onPress: () => router.back(),
+        },
+      ]);
     } catch (error: any) {
       console.error('Error creating transaction:', error);
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        'Failed to create transaction. Please try again.';
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Error', 'Failed to create transaction. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -211,16 +197,16 @@ export default function AddTransactionScreen() {
             <View style={styles.pickerContainer}>
               {categories.map((category) => (
                 <Button
-                  key={category.ID}
-                  mode={selectedCategory === category.ID ? 'contained' : 'outlined'}
+                  key={category.remote_id}
+                  mode={selectedCategory === category.remote_id ? 'contained' : 'outlined'}
                   onPress={() => {
-                    setSelectedCategory(category.ID);
+                    setSelectedCategory(category.remote_id);
                     setErrors({ ...errors, category: '' });
                   }}
                   style={styles.pickerButton}
                   compact
                 >
-                  {category.CategoryName}
+                  {category.category_name}
                 </Button>
               ))}
             </View>
@@ -235,10 +221,10 @@ export default function AddTransactionScreen() {
             <View style={styles.pickerContainer}>
               {banks.map((bank) => (
                 <Button
-                  key={bank.id}
-                  mode={selectedBank === bank.id ? 'contained' : 'outlined'}
+                  key={bank.remote_id}
+                  mode={selectedBank === bank.remote_id ? 'contained' : 'outlined'}
                   onPress={() => {
-                    setSelectedBank(bank.id);
+                    setSelectedBank(bank.remote_id);
                     setErrors({ ...errors, bank: '' });
                   }}
                   style={styles.pickerButton}

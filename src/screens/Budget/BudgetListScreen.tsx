@@ -1,48 +1,40 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  Alert,
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    View,
 } from 'react-native';
 import {
-  ActivityIndicator,
-  Card,
-  FAB,
-  IconButton,
-  ProgressBar,
-  Snackbar,
-  Text,
-  useTheme,
+    ActivityIndicator,
+    Card,
+    FAB,
+    IconButton,
+    ProgressBar,
+    Snackbar,
+    Text,
+    useTheme,
 } from 'react-native-paper';
-import { Budget, budgetService } from '../../api/budgetService';
+import { budgetRepository } from '../../database/BudgetRepository';
 
 export default function BudgetListScreen() {
   const theme = useTheme();
   const router = useRouter();
 
-  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [budgets, setBudgets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
 
-  // Fetch budgets with status
+  // Fetch budgets with status from local database
   const fetchBudgets = async (showLoader = true) => {
     try {
       if (showLoader) setLoading(true);
-      const response = await budgetService.getBudgets();
-
-      console.log('Budgets Response:', JSON.stringify(response, null, 2));
-
-      if (response.success && response.data) {
-        console.log('Budgets data:', JSON.stringify(response.data, null, 2));
-        // Extract the budgets array from the nested data structure
-        const budgetsArray = response?.data?.data;
-        setBudgets(Array.isArray(budgetsArray) ? budgetsArray : []);
-      }
+      const data = await budgetRepository.findWithStats();
+      setBudgets(data);
     } catch (error: any) {
       console.error('Error fetching budgets:', error);
       const errorMessage =
@@ -66,7 +58,7 @@ export default function BudgetListScreen() {
     setRefreshing(false);
   };
 
-  const handleDelete = (budgetId: number) => {
+  const handleDelete = (budgetId: string) => {
     Alert.alert(
       'Delete Budget',
       'Are you sure you want to delete this budget?',
@@ -77,12 +69,10 @@ export default function BudgetListScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const response = await budgetService.deleteBudget(budgetId);
-              if (response.success) {
-                setSnackbarMessage('Budget deleted successfully');
-                setSnackbarVisible(true);
-                fetchBudgets();
-              }
+              await budgetRepository.delete(budgetId);
+              setSnackbarMessage('Budget deleted successfully');
+              setSnackbarVisible(true);
+              fetchBudgets();
             } catch (error: any) {
               console.error('Error deleting budget:', error);
               const errorMessage =
@@ -126,7 +116,7 @@ export default function BudgetListScreen() {
     }
   };
 
-  const renderBudgetItem = ({ item }: { item: Budget }) => {
+  const renderBudgetItem = ({ item }: { item: any }) => {
     const statusColor = getStatusColor(item.status || 'safe');
     const remaining = item.remaining_amount || 0;
     const percentageUsed = item.percentage_used || 0;
@@ -158,7 +148,7 @@ export default function BudgetListScreen() {
             <IconButton
               icon="delete"
               iconColor={theme.colors.error}
-              onPress={() => handleDelete(item.id)}
+              onPress={() => handleDelete(item.local_id)}
               style={{ margin: 0 }}
             />
           </View>
@@ -237,7 +227,7 @@ export default function BudgetListScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <FlatList
         data={budgets}
-        keyExtractor={(item) => item?.id?.toString() || Math.random().toString()}
+        keyExtractor={(item) => item?.local_id || Math.random().toString()}
         renderItem={renderBudgetItem}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />

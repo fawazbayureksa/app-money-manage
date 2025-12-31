@@ -16,7 +16,7 @@ import {
   TextInput,
   useTheme,
 } from 'react-native-paper';
-import { categoryService } from '../../api/categoryService';
+import { categoryRepository } from '../../database/CategoryRepository';
 
 export default function AddCategoryScreen() {
   const theme = useTheme();
@@ -50,21 +50,16 @@ export default function AddCategoryScreen() {
     try {
       setLoading(true);
       setError('');
-      const body = {
-        categoryName: name.trim(),
+      
+      await categoryRepository.createLocal({
+        category_name: name.trim(),
         description: name.trim(),
-      };
-      const response = await categoryService.createCategory(body);
+      });
 
-      if (response.success) {
-        router.back();
-      } else {
-        setError(response.message || 'Failed to create category');
-      }
+      router.back();
     } catch (error: any) {
       console.error('Error creating category:', error);
       const errorMessage =
-        error.response?.data?.message || 
         error.message || 
         'Failed to create category. Please try again.';
       setError(errorMessage);
@@ -92,7 +87,7 @@ export default function AddCategoryScreen() {
               Add New Category
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              Create a category to organize your transactions
+              Create a local category to organize your transactions
             </Text>
           </View>
 

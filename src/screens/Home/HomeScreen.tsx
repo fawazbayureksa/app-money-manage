@@ -3,22 +3,29 @@ import React, { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, Card, Chip, IconButton, Snackbar, Text, useTheme } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { alertService, BudgetAlert } from '../../api/alertService';
-import { analyticsService, DashboardSummary, RecentTransaction } from '../../api/analyticsService';
-import { useAuth } from '../../context/AuthContext';
+import { useOfflineAuth } from '../../context/OfflineAuthContext';
+import { budgetAlertRepository } from '../../database/BudgetAlertRepository';
+import { budgetRepository } from '../../database/BudgetRepository';
+import { transactionRepository } from '../../database/TransactionRepository';
 import { formatCurrency, formatDateRelative } from '../../utils/formatters';
 
+interface DashboardData {
+  total_income: number;
+  total_expense: number;
+  net_amount: number;
+  active_budgets: number;
+}
 
 
 export default function HomeScreen() {
   const theme = useTheme();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { userData, isInitialized } = useOfflineAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const [recentAlerts, setRecentAlerts] = useState<BudgetAlert[]>([]);
-  const [recentTransactions, setRecentTransactions] = useState<RecentTransaction[]>([]);
-  const [dashboardData, setDashboardData] = useState<DashboardSummary | null>(null);
+  const [recentAlerts, setRecentAlerts] = useState<any[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -26,36 +33,57 @@ export default function HomeScreen() {
 
   // Fetch all dashboard data
   const fetchDashboardData = useCallback(async (showLoader = true) => {
-    if (!isAuthenticated) return;
+    if (!isInitialized) return;
 
     try {
       if (showLoader) setLoading(true);
 
-      // Fetch dashboard analytics and alerts
-      const [analyticsResponse, alertsResponse] = await Promise.all([
-        analyticsService.getDashboardSummary(),
-        alertService.getAlerts({ unread_only: true }),
-      ]);
+      // Get current month stats from local database
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-      if (analyticsResponse.success && analyticsResponse.data) {
-        setDashboardData(analyticsResponse.data);
-        // Recent transactions are now included in the analytics response
-        setRecentTransactions(analyticsResponse.data.recent_transactions || []);
-      }
+      // Fetch transaction stats
+      const stats = await transactionRepository.getStats({
+        start_date: startOfMonth.toISOString(),
+        end_date: endOfMonth.toISOString(),
+      });
 
-      if (alertsResponse.success && alertsResponse.data) {
-        setRecentAlerts(alertsResponse.data.slice(0, 3));
-      }
+      // Fetch recent transactions
+      const transactions = await transactionRepository.findGroupedByDate({
+        limit: 5,
+      });
+      const flatTransactions = transactions.flatMap(group => group.transactions);
+
+      // Fetch unread alerts
+      const alerts = await budgetAlertRepository.findAllWithOptions({
+        unreadOnly: true,
+      });
+      const limitedAlerts = alerts.slice(0, 3);
+
+      // Fetch active budgets count
+      const allBudgets = await budgetRepository.findAll();
+      const budgets = allBudgets.filter(budget => budget.is_active);
+
+      setDashboardData({
+        total_income: stats.total_income,
+        total_expense: stats.total_expense,
+        net_amount: stats.net_amount,
+        active_budgets: budgets.length,
+      });
+      
+      setRecentTransactions(flatTransactions);
+      setRecentAlerts(limitedAlerts);
     } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to load dashboard data';
+      const errorMessage = 'Failed to load dashboard data';
       setSnackbarMessage(errorMessage);
       setSnackbarVisible(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [isAuthenticated]);
+  }, [isInitialized]);
 
   useFocusEffect(
     useCallback(() => {
@@ -67,15 +95,6 @@ export default function HomeScreen() {
   const onRefresh = () => {
     setRefreshing(true);
     fetchDashboardData(false);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      router.replace('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
   };
 
   const getAlertColor = (percentage: number): string => {
@@ -121,7 +140,7 @@ export default function HomeScreen() {
               Welcome back
             </Text>
             <Text variant="headlineLarge" style={[styles.userName, { color: '#FFF' }]}>
-              {user?.username || user?.email?.split('@')[0] || 'User'}
+              {userData?.name || userData?.email?.split('@')[0] || 'Local User'}
             </Text>
             <Text variant="bodyMedium" style={styles.greetingSubtext}>
               Let&apos;s manage your finances today 💰
@@ -141,7 +160,7 @@ export default function HomeScreen() {
       {/* Quick Stats Cards */}
       {dashboardData ? (
         <View style={styles.statsContainer}>
-          <Card style={[styles.statCard, { backgroundColor: '#4CAF50' }]}>
+          <Card key="stat-income" style={[styles.statCard, { backgroundColor: '#4CAF50' }]}>
             <Card.Content style={styles.statContent}>
               <IconButton icon="arrow-up" size={32} iconColor="#FFF" style={styles.statIcon} />
               <View style={styles.statTextContainer}>
@@ -149,13 +168,13 @@ export default function HomeScreen() {
                   Income
                 </Text>
                 <Text variant="headlineSmall" style={styles.statValue}>
-                  {formatCurrency(dashboardData.current_month.total_income)}
+                  {formatCurrency(dashboardData.total_income)}
                 </Text>
               </View>
             </Card.Content>
           </Card>
 
-          <Card style={[styles.statCard, { backgroundColor: '#F44336' }]}>
+          <Card key="stat-expenses" style={[styles.statCard, { backgroundColor: '#F44336' }]}>
             <Card.Content style={styles.statContent}>
               <IconButton icon="arrow-down" size={32} iconColor="#FFF" style={styles.statIcon} />
               <View style={styles.statTextContainer}>
@@ -163,7 +182,7 @@ export default function HomeScreen() {
                   Expenses
                 </Text>
                 <Text variant="headlineSmall" style={styles.statValue}>
-                  {formatCurrency(dashboardData.current_month.total_expense)}
+                  {formatCurrency(dashboardData.total_expense)}
                 </Text>
               </View>
             </Card.Content>
@@ -184,25 +203,25 @@ export default function HomeScreen() {
         <View style={styles.additionalStats}>
           <Card style={styles.additionalStatCard}>
             <Card.Content style={styles.additionalStatContent}>
-              <View style={styles.additionalStatItem}>
+              <View key="stat-net-savings" style={styles.additionalStatItem}>
                 <IconButton icon="wallet-outline" size={24} iconColor={theme.colors.primary} />
                 <View>
                   <Text variant="bodySmall" style={styles.additionalStatLabel}>
                     Net Savings
                   </Text>
-                  <Text variant="titleMedium" style={{ fontWeight: 'bold', color: dashboardData.current_month.net_amount >= 0 ? '#4CAF50' : '#F44336' }}>
-                    {formatCurrency(dashboardData.current_month.net_amount)}
+                  <Text variant="titleMedium" style={{ fontWeight: 'bold', color: dashboardData.net_amount >= 0 ? '#4CAF50' : '#F44336' }}>
+                    {formatCurrency(dashboardData.net_amount)}
                   </Text>
                 </View>
               </View>
-              <View style={styles.additionalStatItem}>
+              <View key="stat-active-budgets" style={styles.additionalStatItem}>
                 <IconButton icon="chart-bar" size={24} iconColor={theme.colors.primary} />
                 <View>
                   <Text variant="bodySmall" style={styles.additionalStatLabel}>
                     Active Budgets
                   </Text>
                   <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
-                    {dashboardData.budget_summary.active_budgets}
+                    {dashboardData.active_budgets}
                   </Text>
                 </View>
               </View>
@@ -283,11 +302,11 @@ export default function HomeScreen() {
           </View>
 
           {recentTransactions.map((transaction) => {
-            const isIncome = transaction.transaction_type === 1;
+            const isIncome = transaction.type === 'income';
             const typeColor = isIncome ? '#4CAF50' : '#F44336';
 
             return (
-              <Card key={transaction.id} style={styles.transactionCard}>
+              <Card key={transaction.local_id || transaction.id} style={styles.transactionCard}>
                 <Card.Content style={styles.transactionContent}>
                   <View style={[styles.transactionIcon, { backgroundColor: typeColor + '20' }]}>
                     <IconButton
@@ -302,7 +321,7 @@ export default function HomeScreen() {
                       {transaction.category_name || 'No Category'}
                     </Text>
                     <Text variant="bodySmall" style={{ opacity: 0.6 }}>
-                      {formatDateRelative(transaction.date)}
+                      {formatDateRelative(transaction.transaction_date)}
                     </Text>
                   </View>
                   <Text variant="titleMedium" style={[{ fontWeight: 'bold', color: typeColor }]}>
@@ -346,7 +365,7 @@ export default function HomeScreen() {
           Quick Actions
         </Text>
 
-        <Card style={styles.actionCard} onPress={() => router.push('/transactions/add' as any)}>
+        <Card key="action-add-transaction" style={styles.actionCard} onPress={() => router.push('/transactions/add' as any)}>
           <Card.Content style={styles.actionContent}>
             <View style={[styles.actionIcon, { backgroundColor: '#4CAF5020' }]}>
               <IconButton
@@ -370,7 +389,7 @@ export default function HomeScreen() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.actionCard} onPress={() => router.push('/budgets' as any)}>
+        <Card key="action-manage-budgets" style={styles.actionCard} onPress={() => router.push('/budgets' as any)}>
           <Card.Content style={styles.actionContent}>
             <View style={[styles.actionIcon, { backgroundColor: theme.colors.tertiaryContainer }]}>
               <IconButton
@@ -394,7 +413,7 @@ export default function HomeScreen() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.actionCard} onPress={() => router.push('/(tabs)/categories' as any)}>
+        <Card key="action-manage-categories" style={styles.actionCard} onPress={() => router.push('/(tabs)/categories' as any)}>
           <Card.Content style={styles.actionContent}>
             <View style={[styles.actionIcon, { backgroundColor: theme.colors.primaryContainer }]}>
               <IconButton
@@ -417,6 +436,30 @@ export default function HomeScreen() {
             />
           </Card.Content>
         </Card>
+
+        <Card key="action-view-banks" style={styles.actionCard} onPress={() => router.push('/banks' as any)}>
+          <Card.Content style={styles.actionContent}>
+            <View style={[styles.actionIcon, { backgroundColor: '#E3F2FD' }]}>
+              <IconButton
+                icon="bank"
+                size={28}
+                iconColor="#2196F3"
+                style={{ margin: 0 }}
+              />
+            </View>
+            <View style={styles.actionText}>
+              <Text variant="titleMedium">View Banks</Text>
+              <Text variant="bodySmall" style={styles.actionDescription}>
+                Browse available banks
+              </Text>
+            </View>
+            <IconButton
+              icon="chevron-right"
+              size={24}
+              iconColor={theme.colors.primary}
+            />
+          </Card.Content>
+        </Card>
       </View>
 
       {/* Account Section */}
@@ -427,17 +470,14 @@ export default function HomeScreen() {
               <View style={{ flex: 1 }}>
                 <Text variant="titleMedium" style={{ fontWeight: '600' }}>Account</Text>
                 <Text variant="bodySmall" style={styles.accountEmail}>
-                  {user?.email}
+                  {userData?.email || userData?.name || 'Here'}
                 </Text>
               </View>
-              <Button
-                mode="outlined"
-                onPress={handleLogout}
-                icon="logout"
-                compact
-              >
-                Logout
-              </Button>
+              <IconButton
+                icon="cog"
+                size={24}
+                onPress={() => router.push('/modal' as any)}
+              />
             </View>
           </Card.Content>
         </Card>
