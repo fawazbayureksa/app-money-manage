@@ -1,0 +1,253 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
+    
+    // Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Check if user is admin (implement as needed)
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.is_admin == true;
+    }
+    
+    // Validate required fields exist
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+    
+    // Check if only allowed fields are being updated
+    function onlyUpdating(allowedFields) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedFields);
+    }
+    
+    // ==========================================
+    // USERS COLLECTION
+    // ==========================================
+    match /users/{userId} {
+      // Users can read their own profile
+      allow read: if isOwner(userId);
+      
+      // Users can create their own profile (registration)
+      allow create: if isOwner(userId) && 
+                      hasRequiredFields(['username', 'email', 'created_at']);
+      
+      // Users can update their own profile
+      allow update: if isOwner(userId);
+      
+      // Prevent user deletion (use Cloud Functions if needed)
+      allow delete: if false;
+    }
+    
+    // ==========================================
+    // CATEGORIES COLLECTION
+    // ==========================================
+    match /categories/{categoryId} {
+      // Validation function for category data
+      function isValidCategory() {
+        let data = request.resource.data;
+        return data.name is string && 
+               data.name.size() > 0 && 
+               data.name.size() <= 100 &&
+               data.userId == request.auth.uid;
+      }
+      
+      // Users can read their own categories and default categories
+      allow read: if isAuthenticated() && 
+                    (resource.data.userId == request.auth.uid || 
+                     resource.data.isDefault == true);
+      
+      // Users can create categories
+      allow create: if isAuthenticated() && 
+                      isValidCategory() &&
+                      hasRequiredFields(['userId', 'name', 'description', 'created_at']);
+      
+      // Users can update their own categories
+      allow update: if isOwner(resource.data.userId) && 
+                      isValidCategory();
+      
+      // Users can delete their own categories (not default ones)
+      allow delete: if isOwner(resource.data.userId) && 
+                      resource.data.isDefault != true;
+    }
+    
+    // ==========================================
+    // TRANSACTIONS COLLECTION
+    // ==========================================
+    match /transactions/{transactionId} {
+      // Validation function for transaction data
+      function isValidTransaction() {
+        let data = request.resource.data;
+        return data.userId == request.auth.uid &&
+               data.amount is number &&
+               data.amount > 0 &&
+               data.type in ['income', 'expense'] &&
+               data.date is timestamp &&
+               data.categoryId is string &&
+               data.bankId is string &&
+               data.description is string &&
+               data.description.size() <= 500;
+      }
+      
+      // Users can read their own transactions
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid;
+      
+      // Users can create transactions
+      allow create: if isAuthenticated() && 
+                      isValidTransaction() &&
+                      hasRequiredFields([
+                        'userId', 'categoryId', 'categoryName', 'bankId', 
+                        'bankName', 'amount', 'type', 'date', 'description', 
+                        'created_at'
+                      ]);
+      
+      // Users can update their own transactions
+      allow update: if isOwner(resource.data.userId) && 
+                      isValidTransaction();
+      
+      // Users can delete their own transactions
+      allow delete: if isOwner(resource.data.userId);
+    }
+    
+    // ==========================================
+    // BUDGETS COLLECTION
+    // ==========================================
+    match /budgets/{budgetId} {
+      // Validation function for budget data
+      function isValidBudget() {
+        let data = request.resource.data;
+        return data.userId == request.auth.uid &&
+               data.amount is number &&
+               data.amount > 0 &&
+               data.period in ['monthly', 'yearly'] &&
+               data.startDate is timestamp &&
+               data.endDate is timestamp &&
+               data.endDate > data.startDate &&
+               data.alertAt is number &&
+               data.alertAt >= 0 &&
+               data.alertAt <= 100 &&
+               data.categoryId is string;
+      }
+      
+      // Users can read their own budgets
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid;
+      
+      // Users can create budgets
+      allow create: if isAuthenticated() && 
+                      isValidBudget() &&
+                      hasRequiredFields([
+                        'userId', 'categoryId', 'categoryName', 'amount', 
+                        'period', 'startDate', 'endDate', 'alertAt', 
+                        'isActive', 'created_at'
+                      ]);
+      
+      // Users can update their own budgets
+      // Cloud Functions can update spentAmount and percentageUsed
+      allow update: if isOwner(resource.data.userId) && 
+                      (isValidBudget() || 
+                       onlyUpdating(['spentAmount', 'percentageUsed', 'updated_at', 'alertSent']));
+      
+      // Users can delete their own budgets
+      allow delete: if isOwner(resource.data.userId);
+    }
+    
+    // ==========================================
+    // BUDGET ALERTS COLLECTION
+    // ==========================================
+    match /budget_alerts/{alertId} {
+      // Users can read their own alerts
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid;
+      
+      // Users can only mark alerts as read
+      allow update: if isOwner(resource.data.userId) && 
+                      onlyUpdating(['isRead']);
+      
+      // Only Cloud Functions can create/delete alerts
+      allow create: if false;
+      allow delete: if false;
+    }
+    
+    // ==========================================
+    // BANKS COLLECTION
+    // ==========================================
+    match /banks/{bankId} {
+      // Validation function for bank data
+      function isValidBank() {
+        let data = request.resource.data;
+        return data.userId == request.auth.uid &&
+               data.name is string &&
+               data.name.size() > 0 &&
+               data.name.size() <= 100 &&
+               data.type is string &&
+               data.balance is number;
+      }
+      
+      // Users can read their own banks
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid;
+      
+      // Users can create banks
+      allow create: if isAuthenticated() && 
+                      isValidBank() &&
+                      hasRequiredFields(['userId', 'name', 'type', 'balance', 'created_at']);
+      
+      // Users can update their own banks
+      allow update: if isOwner(resource.data.userId) && 
+                      isValidBank();
+      
+      // Users can delete their own banks
+      allow delete: if isOwner(resource.data.userId);
+    }
+    
+    // ==========================================
+    // ANALYTICS COLLECTION (Aggregated Data)
+    // ==========================================
+    match /analytics/{userId} {
+      // Users can read their own analytics
+      allow read: if isOwner(userId);
+      
+      // Only Cloud Functions can write analytics
+      allow write: if false;
+    }
+    
+    // ==========================================
+    // NOTIFICATIONS COLLECTION
+    // ==========================================
+    match /notifications/{notificationId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated() && 
+                    resource.data.userId == request.auth.uid;
+      
+      // Users can mark notifications as read
+      allow update: if isOwner(resource.data.userId) && 
+                      onlyUpdating(['isRead', 'readAt']);
+      
+      // Only Cloud Functions can create/delete notifications
+      allow create: if false;
+      allow delete: if false;
+    }
+    
+    // ==========================================
+    // DEFAULT DENY
+    // ==========================================
+    // Deny access to any other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
