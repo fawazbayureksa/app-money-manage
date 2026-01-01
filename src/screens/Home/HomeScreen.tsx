@@ -23,6 +23,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [showAmounts, setShowAmounts] = useState(false);
 
   // Fetch all dashboard data
   const fetchDashboardData = useCallback(async (showLoader = true) => {
@@ -139,17 +140,27 @@ export default function HomeScreen() {
       </View>
 
       {/* Quick Stats Cards */}
+      <View style={styles.statsHeaderContainer}>
+        <Text variant="titleMedium" style={styles.statsHeaderTitle}>Quick Stats</Text>
+        <IconButton 
+          icon={showAmounts ? "eye-outline" : "eye-off-outline"} 
+          size={20} 
+          iconColor={theme.colors.primary}
+          onPress={() => setShowAmounts(!showAmounts)}
+          style={styles.eyeButton}
+        />
+      </View>
       {dashboardData ? (
         <View style={styles.statsContainer}>
           <Card style={[styles.statCard, { backgroundColor: '#4CAF50' }]}>
             <Card.Content style={styles.statContent}>
-              <IconButton icon="arrow-up" size={32} iconColor="#FFF" style={styles.statIcon} />
+              <IconButton icon="arrow-up" size={16} iconColor="#FFF" style={styles.statIcon} />
               <View style={styles.statTextContainer}>
                 <Text variant="labelMedium" style={styles.statLabel}>
                   Income
                 </Text>
                 <Text variant="headlineSmall" style={styles.statValue}>
-                  {formatCurrency(dashboardData.current_month.total_income)}
+                  {showAmounts ? formatCurrency(dashboardData.current_month.total_income) : '••••••'}
                 </Text>
               </View>
             </Card.Content>
@@ -157,13 +168,13 @@ export default function HomeScreen() {
 
           <Card style={[styles.statCard, { backgroundColor: '#F44336' }]}>
             <Card.Content style={styles.statContent}>
-              <IconButton icon="arrow-down" size={32} iconColor="#FFF" style={styles.statIcon} />
+              <IconButton icon="arrow-down" size={16} iconColor="#FFF" style={styles.statIcon} />
               <View style={styles.statTextContainer}>
                 <Text variant="labelMedium" style={styles.statLabel}>
                   Expenses
                 </Text>
                 <Text variant="headlineSmall" style={styles.statValue}>
-                  {formatCurrency(dashboardData.current_month.total_expense)}
+                  {showAmounts ? formatCurrency(dashboardData.current_month.total_expense) : '••••••'}
                 </Text>
               </View>
             </Card.Content>
@@ -185,18 +196,18 @@ export default function HomeScreen() {
           <Card style={styles.additionalStatCard}>
             <Card.Content style={styles.additionalStatContent}>
               <View style={styles.additionalStatItem}>
-                <IconButton icon="wallet-outline" size={24} iconColor={theme.colors.primary} />
+                <IconButton icon="wallet-outline" size={18} iconColor={theme.colors.primary} />
                 <View>
                   <Text variant="bodySmall" style={styles.additionalStatLabel}>
                     Net Savings
                   </Text>
-                  <Text variant="titleMedium" style={{ fontWeight: 'bold', color: dashboardData.current_month.net_amount >= 0 ? '#4CAF50' : '#F44336' }}>
-                    {formatCurrency(dashboardData.current_month.net_amount)}
+                  <Text variant="titleMedium" style={{ fontSize:14,fontWeight: 'bold', color: dashboardData.current_month.net_amount >= 0 ? '#4CAF50' : '#F44336' }}>
+                    {showAmounts ? formatCurrency(dashboardData.current_month.net_amount) : '••••••'}
                   </Text>
                 </View>
               </View>
               <View style={styles.additionalStatItem}>
-                <IconButton icon="chart-bar" size={24} iconColor={theme.colors.primary} />
+                <IconButton icon="chart-bar" size={18} iconColor={theme.colors.primary} />
                 <View>
                   <Text variant="bodySmall" style={styles.additionalStatLabel}>
                     Active Budgets
@@ -473,7 +484,6 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 28,
     paddingBottom: 24,
     marginBottom: 20,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -517,6 +527,19 @@ const styles = StyleSheet.create({
     margin: 0,
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
+  statsHeaderContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  statsHeaderTitle: {
+    fontWeight: '600',
+  },
+  eyeButton: {
+    margin: 0,
+  },
   statsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -546,11 +569,11 @@ const styles = StyleSheet.create({
   statValue: {
     color: '#FFF',
     fontWeight: 'bold',
-    fontSize: 14,
+    fontSize: 12,
   },
   additionalStats: {
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: 14,
+    marginBottom: 14,
   },
   additionalStatCard: {
     borderRadius: 16,
