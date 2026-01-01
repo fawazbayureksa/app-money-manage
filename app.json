@@ -19,7 +19,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.fawazbayureksa.moneymanage"
     },
     "web": {
       "output": "static",
@@ -43,6 +44,14 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a7878a9c-38dc-4e3b-88f5-4f12fe4d0dd5"
+      },
+      "apiUrl": "http://34.158.34.129:8080/api"
+    },
+    "owner": "fawazbayureksa"
   }
 }
