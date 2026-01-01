@@ -13,15 +13,29 @@ import AlertBadge from '@/src/components/AlertBadge';
 function AddButton() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const primaryColor = Colors[colorScheme ?? 'light'].tint;
+  const isDark = colorScheme === 'dark';
+  
+  // Use brighter color for dark mode for better visibility
+  const buttonColor = isDark ? '#9f68ecff' : Colors[colorScheme ?? 'light'].tint;
 
   return (
-    <Pressable
-      onPress={() => router.push('/transactions/add' as any)}
-      style={[styles.addButton, { backgroundColor: primaryColor }]}
-    >
-      <MaterialCommunityIcons name="plus" size={32} color="#FFFFFF" />
-    </Pressable>
+    <View style={styles.addButtonContainer}>
+      {isDark && (
+        <View style={[styles.addButtonGlow, { backgroundColor: buttonColor, opacity: 0.3 }]} />
+      )}
+      <Pressable
+        onPress={() => router.push('/transactions/add' as any)}
+        style={[
+          styles.addButton,
+          {
+            backgroundColor: buttonColor,
+            borderWidth: isDark ? 2 : 0,
+          },
+        ]}
+      >
+        <MaterialCommunityIcons name="plus" size={32} color="#FFFFFF" />
+      </Pressable>
+    </View>
   );
 }
 
@@ -112,20 +126,32 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
+  addButtonContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addButtonGlow: {
+    position: 'absolute',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginTop: -20,
+  },
   addButton: {
     width: 56,
     height: 56,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: -20, // Elevate the button above the tab bar
+    marginTop: -20,
     marginBottom: 4,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 4,
     },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 8,
   },
