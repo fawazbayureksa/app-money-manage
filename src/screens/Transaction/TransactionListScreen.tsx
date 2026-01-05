@@ -23,7 +23,12 @@ import { formatCurrency, formatDateShort } from '../../utils/formatters';
 export default function TransactionListScreen() {
   const theme = useTheme();
   const router = useRouter();
-  const params = useLocalSearchParams<{ type?: string }>();
+  const params = useLocalSearchParams<{
+    type?: string;
+    category_id?: string;
+    start_date?: string;
+    end_date?: string;
+  }>();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,12 +45,18 @@ export default function TransactionListScreen() {
   }, [params.type]);
 
   // Fetch transactions
-  const fetchTransactions = async (showLoader = true) => {
+  const fetchTransactions = useCallback(async (showLoader = true) => {
     try {
       if (showLoader) setLoading(true);
 
       // Use current filterType state
-      const queryParams = filterType !== 'All' ? { transaction_type: filterType } : {};
+      const queryParams: any = filterType !== 'All' ? { transaction_type: filterType } : {};
+
+      // Add other filters from params if they exist
+      if (params.category_id) queryParams.category_id = parseInt(params.category_id);
+      if (params.start_date) queryParams.start_date = params.start_date;
+      if (params.end_date) queryParams.end_date = params.end_date;
+
       const response = await transactionService.getTransactions(queryParams);
 
       console.log('Transactions Response:', JSON.stringify(response, null, 2));
@@ -64,13 +75,13 @@ export default function TransactionListScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [filterType, params.category_id, params.start_date, params.end_date]);
 
   // Load transactions when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       fetchTransactions();
-    }, [filterType])
+    }, [fetchTransactions])
   );
 
   // Handle pull to refresh
@@ -199,7 +210,14 @@ export default function TransactionListScreen() {
     <View style={styles.filterContainer}>
       <Chip
         selected={filterType === 'All'}
-        onPress={() => setFilterType('All')}
+        onPress={() => {
+          setFilterType('All');
+          router.setParams({
+            category_id: undefined,
+            start_date: undefined,
+            end_date: undefined
+          });
+        }}
         style={styles.filterChip}
       >
         All
@@ -234,7 +252,6 @@ export default function TransactionListScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {renderFilters()}
-
       <FlatList
         data={transactions}
         renderItem={renderTransactionItem}
@@ -290,6 +307,18 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     marginRight: 8,
+  },
+  activeFiltersContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  activeFilterLabel: {
+    fontWeight: 'bold',
+    opacity: 0.7,
   },
   incomeChip: {
     backgroundColor: '#4CAF50',

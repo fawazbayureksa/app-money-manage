@@ -132,7 +132,11 @@ export default function BudgetListScreen() {
     const percentageUsed = item.percentage_used || 0;
 
     return (
-      <Card style={styles.card} mode="elevated">
+      <Card
+        style={styles.card}
+        mode="elevated"
+        onPress={() => handleBudgetPress(item)}
+      >
         <Card.Content>
           {/* Header */}
           <View style={styles.header}>
@@ -212,6 +216,39 @@ export default function BudgetListScreen() {
         </Card.Content>
       </Card>
     );
+  };
+
+  const handleBudgetPress = (budget: Budget) => {
+    const now = new Date();
+    let startDate = '';
+    let endDate = '';
+
+    if (budget.period === 'monthly') {
+      // Start of current month
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      // End of current month
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      startDate = start.toISOString().split('T')[0];
+      endDate = end.toISOString().split('T')[0];
+    } else {
+      // Yearly
+      const start = new Date(now.getFullYear(), 0, 1);
+      const end = new Date(now.getFullYear(), 11, 31);
+
+      startDate = start.toISOString().split('T')[0];
+      endDate = end.toISOString().split('T')[0];
+    }
+
+    router.push({
+      pathname: '/transactions',
+      params: {
+        category_id: budget.category_id,
+        start_date: startDate,
+        end_date: endDate,
+        type: 'Expense' // Budgets are typically for expenses
+      }
+    } as any);
   };
 
   const renderEmptyList = () => (
