@@ -18,7 +18,7 @@ export interface BankListResponse {
 export const bankService = {
   // Get all banks for the authenticated user
   getBanks: async (): Promise<ApiResponse<BankListResponse>> => {
-    const response = await apiClient.get<ApiResponse<BankListResponse>>('/banks');
+    const response = await apiClient.get<ApiResponse<BankListResponse>>('/banks?page=1&page_size=100');
     return response.data;
   },
 

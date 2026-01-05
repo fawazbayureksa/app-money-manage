@@ -45,22 +45,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(storedUser);
         setIsAuthenticated(true);
 
-        // Optionally verify token with backend (don't logout on failure)
-        try {
-          const response = await authApi.getCurrentUser();
-          if (response.success && response.data) {
-            const updatedUser = {
-              id: response.data.id?.toString(),
-              username: response.data.name,
-              email: response.data.email,
-            };
-            setUser(updatedUser);
-            await storage.saveUserData(updatedUser);
-          }
-        } catch (error) {
-          // Just log the error, keep user logged in with stored data
-          console.log('Could not verify token with backend, using stored data');
-        }
+        // Note: We don't verify token with backend on startup
+        // The token will be validated when making actual API calls
+        // If it's invalid (expired/revoked), those calls will return 401
+        // and the response interceptor will handle logout
       }
     } catch (error) {
       console.error('Auth check error:', error);

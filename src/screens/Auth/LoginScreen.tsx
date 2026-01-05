@@ -175,7 +175,7 @@ export default function LoginScreen() {
       {/* Footer */}
       <View style={styles.footer}>
         <Text variant="bodyLarge" style={styles.footerText}>
-          Don't have an account?
+          Don not have an account?
         </Text>
         <Button
           mode="text"
@@ -187,7 +187,6 @@ export default function LoginScreen() {
           Sign Up
         </Button>
       </View>
-
       <View style={{ height: 32 }} />
     </ScrollView>
   );
@@ -259,5 +258,15 @@ const styles = StyleSheet.create({
   },
   footerText: {
     opacity: 0.7,
+  },
+  apiInfo: {
+    alignItems: 'center',
+    marginTop: 16,
+    paddingHorizontal: 16,
+  },
+  apiText: {
+    fontSize: 11,
+    opacity: 0.6,
+    textAlign: 'center',
   },
 });

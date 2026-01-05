@@ -2,6 +2,9 @@ import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestCo
 import API_CONFIG from '../config/api';
 import { storage } from '../utils/storage';
 
+// Log API client initialization
+console.log('🔌 API Client initialized with base URL:', API_CONFIG.BASE_URL);
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,
@@ -11,7 +14,7 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Request interceptor to add token
+// Request interceptor to add token and log requests
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
     try {
@@ -19,12 +22,16 @@ apiClient.interceptors.request.use(
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      
+      // Log outgoing request for debugging
+      console.log(`📤 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     } catch (error) {
       console.error('Error adding token to request:', error);
     }
     return config;
   },
   (error: AxiosError) => {
+    console.error('❌ Request interceptor error:', error.message);
     return Promise.reject(error);
   }
 );
@@ -32,9 +39,49 @@ apiClient.interceptors.request.use(
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    // Log successful response
+    console.log(`✅ API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
     return response;
   },
   async (error: AxiosError) => {
+    // Detailed error logging for debugging
+    if (error.response) {
+      // Server responded with error status
+      console.error(`❌ API Error Response:`, {
+        status: error.response.status,
+        url: error.config?.url,
+        fullUrl: `${error.config?.baseURL}${error.config?.url}`,
+        method: error.config?.method?.toUpperCase(),
+        message: error.message,
+        data: error.response.data,
+      });
+      
+      // Special handling for 404 errors
+      if (error.response.status === 404) {
+        console.error('🔍 404 Not Found - Possible causes:');
+        console.error('  1. Backend is not running');
+        console.error('  2. Wrong API endpoint path');
+        console.error('  3. Backend routes not properly configured');
+        console.error('  4. Base URL is incorrect');
+        console.error(`  5. Check if ${error.config?.baseURL}${error.config?.url} exists`);
+      }
+    } else if (error.request) {
+      // Request made but no response received
+      console.error(`❌ Network Error - No response received:`, {
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        fullUrl: `${error.config?.baseURL}${error.config?.url}`,
+        message: error.message,
+        code: error.code,
+      });
+      console.error('🔍 Check if backend is accessible from this device');
+      console.error('🔍 Verify API URL is correct:', API_CONFIG.BASE_URL);
+      console.error('🔍 Try: curl', `${error.config?.baseURL}${error.config?.url}`);
+    } else {
+      // Something else happened
+      console.error('❌ Request setup error:', error.message);
+    }
+
     // Handle 401 Unauthorized
     if (error.response?.status === 401) {
       try {
@@ -43,11 +90,6 @@ apiClient.interceptors.response.use(
       } catch (storageError) {
         console.error('Error clearing storage:', storageError);
       }
-    }
-
-    // Handle network errors
-    if (!error.response) {
-      console.error('Network error:', error.message);
     }
 
     return Promise.reject(error);
@@ -99,10 +141,9 @@ export const authApi = {
     return response.data;
   },
 
-  getCurrentUser: async (): Promise<ApiResponse> => {
-    const response = await apiClient.get<ApiResponse>('/user');
-    return response.data;
-  },
+  // Note: getCurrentUser endpoint (/user) is not available on the backend
+  // User data is returned in the login response and stored locally
+  // Token validation happens automatically when making API calls (401 = invalid token)
 };
 
 export default apiClient;

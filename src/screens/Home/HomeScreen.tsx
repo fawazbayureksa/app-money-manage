@@ -138,7 +138,7 @@ export default function HomeScreen() {
           </View>
         </View>
       </View>
-
+      
       {/* Quick Stats Cards */}
       <View style={styles.statsHeaderContainer}>
         <Text variant="titleMedium" style={styles.statsHeaderTitle}>Quick Stats</Text>

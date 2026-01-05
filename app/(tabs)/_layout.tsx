@@ -24,7 +24,7 @@ function AddButton() {
         <View style={[styles.addButtonGlow, { backgroundColor: buttonColor, opacity: 0.3 }]} />
       )}
       <Pressable
-        onPress={() => router.push('/transactions/add' as any)}
+        onPress={() => router.push('/(tabs)/transactions/add' as any)}
         style={[
           styles.addButton,
           {
