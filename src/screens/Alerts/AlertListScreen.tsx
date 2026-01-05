@@ -1,25 +1,26 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-    FlatList,
-    RefreshControl,
-    StyleSheet,
-    View
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  View
 } from 'react-native';
 import {
-    ActivityIndicator,
-    Card,
-    Chip,
-    IconButton,
-    Snackbar,
-    Text,
-    useTheme,
+  ActivityIndicator,
+  Button,
+  Card,
+  Chip,
+  IconButton,
+  Snackbar,
+  Text,
+  useTheme,
 } from 'react-native-paper';
 import { BudgetAlert, alertService } from '../../api/alertService';
 
 export default function AlertListScreen() {
   const theme = useTheme();
-  const router = useRouter();
+  // const router = useRouter();
 
   const [alerts, setAlerts] = useState<BudgetAlert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,12 +33,12 @@ export default function AlertListScreen() {
   const fetchAlerts = async (showLoader = true) => {
     try {
       if (showLoader) setLoading(true);
-      
+
       const params = filterType === 'unread' ? { unread_only: true } : {};
       const response = await alertService.getAlerts(params);
-      
+
       console.log('Alerts Response:', JSON.stringify(response, null, 2));
-      
+
       if (response.success && response.data) {
         console.log('Alerts data:', JSON.stringify(response.data, null, 2));
         setAlerts(Array.isArray(response.data) ? response.data : []);
@@ -107,7 +108,7 @@ export default function AlertListScreen() {
     if (diffMins < 60) return `${diffMins} min ago`;
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
     if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    
+
     return date.toLocaleDateString('id-ID', {
       day: 'numeric',
       month: 'short',
@@ -135,7 +136,7 @@ export default function AlertListScreen() {
     const alertIcon = getAlertIcon(item.percentage);
 
     return (
-      <Card 
+      <Card
         style={[
           styles.card,
           !item.is_read && { borderLeftWidth: 4, borderLeftColor: alertColor }
@@ -152,7 +153,7 @@ export default function AlertListScreen() {
                 style={[styles.alertIcon, { backgroundColor: alertColor + '20' }]}
               />
             </View>
-            
+
             <View style={styles.contentContainer}>
               <View style={styles.titleRow}>
                 <Text variant="titleMedium" style={styles.categoryName}>
@@ -199,15 +200,17 @@ export default function AlertListScreen() {
                   {formatDate(item.created_at)}
                 </Text>
                 {!item.is_read && (
-                  <Chip
-                    icon="check"
+                  <Button
+                    icon="check-circle-outline"
+                    mode="contained-tonal"
                     compact
-                    mode="outlined"
                     onPress={() => handleMarkAsRead(item.id)}
-                    style={styles.markReadChip}
+                    style={styles.markReadButton}
+                    labelStyle={styles.markReadButtonLabel}
+                    contentStyle={{ flexDirection: 'row-reverse' }}
                   >
-                    Mark as read
-                  </Chip>
+                    Mark Read
+                  </Button>
                 )}
               </View>
             </View>
@@ -229,7 +232,7 @@ export default function AlertListScreen() {
         {filterType === 'unread' ? 'No Unread Alerts' : 'No Alerts Yet'}
       </Text>
       <Text variant="bodyMedium" style={styles.emptyText}>
-        {filterType === 'unread' 
+        {filterType === 'unread'
           ? "You're all caught up!"
           : "You'll be notified when you approach your budget limits"}
       </Text>
@@ -267,7 +270,7 @@ export default function AlertListScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {renderFilters()}
-      
+
       <FlatList
         data={alerts}
         renderItem={renderAlertItem}
@@ -392,8 +395,14 @@ const styles = StyleSheet.create({
   timestamp: {
     opacity: 0.6,
   },
-  markReadChip: {
-    height: 28,
+  markReadButton: {
+    borderRadius: 20,
+    marginLeft: 8,
+  },
+  markReadButtonLabel: {
+    fontSize: 11,
+    marginVertical: 4,
+    marginHorizontal: 8,
   },
   emptyState: {
     alignItems: 'center',

@@ -138,13 +138,13 @@ export default function HomeScreen() {
           </View>
         </View>
       </View>
-      
+
       {/* Quick Stats Cards */}
       <View style={styles.statsHeaderContainer}>
         <Text variant="titleMedium" style={styles.statsHeaderTitle}>Quick Stats</Text>
-        <IconButton 
-          icon={showAmounts ? "eye-outline" : "eye-off-outline"} 
-          size={20} 
+        <IconButton
+          icon={showAmounts ? "eye-outline" : "eye-off-outline"}
+          size={20}
           iconColor={theme.colors.primary}
           onPress={() => setShowAmounts(!showAmounts)}
           style={styles.eyeButton}
@@ -152,7 +152,10 @@ export default function HomeScreen() {
       </View>
       {dashboardData ? (
         <View style={styles.statsContainer}>
-          <Card style={[styles.statCard, { backgroundColor: '#4CAF50' }]}>
+          <Card
+            style={[styles.statCard, { backgroundColor: '#4CAF50' }]}
+            onPress={() => router.push({ pathname: '/transactions', params: { type: 'Income' } } as any)}
+          >
             <Card.Content style={styles.statContent}>
               <IconButton icon="arrow-up" size={16} iconColor="#FFF" style={styles.statIcon} />
               <View style={styles.statTextContainer}>
@@ -166,7 +169,10 @@ export default function HomeScreen() {
             </Card.Content>
           </Card>
 
-          <Card style={[styles.statCard, { backgroundColor: '#F44336' }]}>
+          <Card
+            style={[styles.statCard, { backgroundColor: '#F44336' }]}
+            onPress={() => router.push({ pathname: '/transactions', params: { type: 'Expense' } } as any)}
+          >
             <Card.Content style={styles.statContent}>
               <IconButton icon="arrow-down" size={16} iconColor="#FFF" style={styles.statIcon} />
               <View style={styles.statTextContainer}>
@@ -201,7 +207,7 @@ export default function HomeScreen() {
                   <Text variant="bodySmall" style={styles.additionalStatLabel}>
                     Net Savings
                   </Text>
-                  <Text variant="titleMedium" style={{ fontSize:14,fontWeight: 'bold', color: dashboardData.current_month.net_amount >= 0 ? '#4CAF50' : '#F44336' }}>
+                  <Text variant="titleMedium" style={{ fontSize: 14, fontWeight: 'bold', color: dashboardData.current_month.net_amount >= 0 ? '#4CAF50' : '#F44336' }}>
                     {showAmounts ? formatCurrency(dashboardData.current_month.net_amount) : '••••••'}
                   </Text>
                 </View>

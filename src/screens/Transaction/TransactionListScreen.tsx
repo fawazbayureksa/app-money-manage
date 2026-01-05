@@ -1,4 +1,4 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
@@ -23,6 +23,7 @@ import { formatCurrency, formatDateShort } from '../../utils/formatters';
 export default function TransactionListScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const params = useLocalSearchParams<{ type?: string }>();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,13 +32,21 @@ export default function TransactionListScreen() {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [filterType, setFilterType] = useState<'All' | 'Income' | 'Expense'>('All');
 
+  // Sync param with filterType
+  React.useEffect(() => {
+    if (params.type && (params.type === 'Income' || params.type === 'Expense')) {
+      setFilterType(params.type);
+    }
+  }, [params.type]);
+
   // Fetch transactions
   const fetchTransactions = async (showLoader = true) => {
     try {
       if (showLoader) setLoading(true);
 
-      const params = filterType !== 'All' ? { transaction_type: filterType } : {};
-      const response = await transactionService.getTransactions(params);
+      // Use current filterType state
+      const queryParams = filterType !== 'All' ? { transaction_type: filterType } : {};
+      const response = await transactionService.getTransactions(queryParams);
 
       console.log('Transactions Response:', JSON.stringify(response, null, 2));
 
