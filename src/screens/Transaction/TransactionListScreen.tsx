@@ -37,6 +37,12 @@ export default function TransactionListScreen() {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [filterType, setFilterType] = useState<'All' | 'Income' | 'Expense'>('All');
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 10;
+
   // Sync param with filterType
   React.useEffect(() => {
     if (params.type && (params.type === 'Income' || params.type === 'Expense')) {
@@ -44,13 +50,25 @@ export default function TransactionListScreen() {
     }
   }, [params.type]);
 
+  // Reset pagination when filters change
+  React.useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+  }, [filterType, params.category_id, params.start_date, params.end_date]);
+
   // Fetch transactions
-  const fetchTransactions = useCallback(async (showLoader = true) => {
+  const fetchTransactions = useCallback(async (pageNum = 1, shouldRefresh = false) => {
     try {
-      if (showLoader) setLoading(true);
+      if (pageNum === 1 && !shouldRefresh) setLoading(true);
+      if (pageNum > 1) setLoadingMore(true);
 
       // Use current filterType state
+      // Use current filterType state
       const queryParams: any = filterType !== 'All' ? { transaction_type: filterType } : {};
+
+      // Page params
+      queryParams.page = pageNum;
+      queryParams.page_size = PAGE_SIZE;
 
       // Add other filters from params if they exist
       if (params.category_id) queryParams.category_id = parseInt(params.category_id);
@@ -59,11 +77,24 @@ export default function TransactionListScreen() {
 
       const response = await transactionService.getTransactions(queryParams);
 
-      console.log('Transactions Response:', JSON.stringify(response, null, 2));
+      // console.log('Transactions Response:', JSON.stringify(response, null, 2));
 
       if (response.success && response.data) {
-        console.log('Transactions data:', JSON.stringify(response.data, null, 2));
-        setTransactions(response.data);
+        // console.log('Transactions data:', JSON.stringify(response.data, null, 2));
+        const newData = response.data;
+
+        if (pageNum === 1) {
+          setTransactions(newData);
+        } else {
+          setTransactions(prev => [...prev, ...newData]);
+        }
+
+        // Check if we have more data
+        setHasMore(newData.length >= PAGE_SIZE);
+        setPage(pageNum);
+      } else {
+        if (pageNum === 1) setTransactions([]);
+        setHasMore(false);
       }
     } catch (error: any) {
       console.error('Error fetching transactions:', error);
@@ -71,23 +102,34 @@ export default function TransactionListScreen() {
         error.response?.data?.message || 'Failed to load transactions';
       setSnackbarMessage(errorMessage);
       setSnackbarVisible(true);
+      if (pageNum === 1) setTransactions([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   }, [filterType, params.category_id, params.start_date, params.end_date]);
 
   // Load transactions when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      fetchTransactions();
+      fetchTransactions(1);
     }, [fetchTransactions])
   );
 
   // Handle pull to refresh
   const onRefresh = () => {
     setRefreshing(true);
-    fetchTransactions(false);
+    setPage(1);
+    setHasMore(true);
+    fetchTransactions(1, true);
+  };
+
+  // Handle load more
+  const loadMore = () => {
+    if (!loading && !loadingMore && hasMore) {
+      fetchTransactions(page + 1);
+    }
   };
 
   // Handle delete transaction
@@ -109,7 +151,7 @@ export default function TransactionListScreen() {
               if (response.success) {
                 setSnackbarMessage('Transaction deleted successfully');
                 setSnackbarVisible(true);
-                fetchTransactions(false);
+                fetchTransactions(1, false);
               }
             } catch (error: any) {
               console.error('Error deleting transaction:', error);
@@ -268,6 +310,15 @@ export default function TransactionListScreen() {
             colors={[theme.colors.primary]}
           />
         }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerLoader}>
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+            </View>
+          ) : null
+        }
       />
 
       <FAB
@@ -410,5 +461,9 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.4,
     shadowRadius: 8,
+  },
+  footerLoader: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
 });
