@@ -130,6 +130,7 @@ export default function BudgetListScreen() {
     const statusColor = getStatusColor(item.status || 'safe');
     const remaining = item.remaining_amount || 0;
     const percentageUsed = item.percentage_used || 0;
+    const isOverBudget = item.status === 'exceeded';
 
     return (
       <Card
@@ -137,81 +138,60 @@ export default function BudgetListScreen() {
         mode="elevated"
         onPress={() => handleBudgetPress(item)}
       >
-        <Card.Content>
+        <Card.Content style={styles.cardContent}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <View style={styles.categoryInfo}>
+              <View style={[styles.iconContainer, { backgroundColor: statusColor + '20' }]}>
                 <IconButton
                   icon={getStatusIcon(item.status || 'safe')}
                   iconColor={statusColor}
-                  size={24}
+                  size={20}
                   style={{ margin: 0 }}
                 />
-                <View style={{ flex: 1 }}>
-                  <Text variant="titleLarge" style={{ fontWeight: 'bold' }}>
-                    {item.category_name || 'No Category'}
-                  </Text>
-                  <Text variant="bodySmall" style={styles.periodText}>
-                    {item.period === 'monthly' ? 'Monthly' : 'Yearly'} Budget
-                  </Text>
-                </View>
+              </View>
+              <View>
+                <Text variant="titleMedium" style={styles.categoryName}>
+                  {item.category_name || 'No Category'}
+                </Text>
+                <Text variant="labelSmall" style={styles.periodText}>
+                  {item.period === 'monthly' ? 'Monthly' : 'Yearly'} • {remaining < 0 ? 'Over by' : 'Left:'} {formatCurrency(Math.abs(remaining))}
+                </Text>
               </View>
             </View>
-
-            <IconButton
-              icon="delete"
-              iconColor={theme.colors.error}
-              onPress={() => handleDelete(item.id)}
-              style={{ margin: 0 }}
-            />
-          </View>
-
-          {/* Amounts */}
-          <View style={styles.amountsContainer}>
-            <View style={styles.amountItem}>
-              <Text variant="bodySmall" style={styles.amountLabel}>
-                Budget
-              </Text>
-              <Text variant="titleMedium" style={[styles.amountValue, { color: theme.colors.primary }]}>
-                {formatCurrency(item.amount)}
+            <View style={[styles.statusBadge, { backgroundColor: statusColor + '10' }]}>
+              <Text variant="labelSmall" style={{ color: statusColor, fontWeight: '600' }}>
+                {item.status === 'exceeded' ? 'Over' : item.status === 'warning' ? 'Warning' : 'Good'}
               </Text>
             </View>
-            <View style={styles.amountItem}>
-              <Text variant="bodySmall" style={styles.amountLabel}>
-                Spent
-              </Text>
-              <Text variant="titleMedium" style={[styles.amountValue, { color: statusColor }]}>
+          </View>
+
+          {/* Progress Section */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressLabels}>
+              <Text variant="bodyMedium" style={styles.spentText}>
                 {formatCurrency(item.spent_amount || 0)}
+                <Text variant="bodySmall" style={styles.totalText}> / {formatCurrency(item.amount)}</Text>
+              </Text>
+              <Text variant="labelMedium" style={{ color: statusColor, fontWeight: '600' }}>
+                {percentageUsed.toFixed(0)}%
               </Text>
             </View>
-            <View style={styles.amountItem}>
-              <Text variant="bodySmall" style={styles.amountLabel}>
-                Remaining
-              </Text>
-              <Text variant="titleMedium" style={[styles.amountValue, { color: '#4CAF50' }]}>
-                {formatCurrency(remaining)}
-              </Text>
-            </View>
-          </View>
 
-          {/* Progress Bar */}
-          <View style={styles.progressContainer}>
             <ProgressBar
               progress={Math.min(percentageUsed / 100, 1)}
               color={statusColor}
               style={styles.progressBar}
             />
-            <Text variant="labelLarge" style={[styles.percentageText, { color: statusColor }]}>
-              {percentageUsed.toFixed(0)}%
-            </Text>
           </View>
 
-          {/* Alert Threshold */}
+          {/* Alert Footer (Optional - only show if warning/exceeded or set) */}
           {item.alert_at && (
-            <Text variant="bodySmall" style={styles.alertText}>
-              Alert at {item.alert_at}% • {item.status === 'exceeded' ? 'Over budget!' : item.status === 'warning' ? 'Approaching limit' : 'Within budget'}
-            </Text>
+            <View style={styles.footer}>
+              <Text variant="labelSmall" style={styles.alertText}>
+                Alert at {item.alert_at}%
+              </Text>
+            </View>
           )}
         </Card.Content>
       </Card>
@@ -324,8 +304,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   card: {
-    marginBottom: 16,
-    borderRadius: 12,
+    marginBottom: 12,
+    borderRadius: 16,
+    borderWidth: 0, // Cleaner look
+    elevation: 2,
+    backgroundColor: 'white',
+  },
+  cardContent: {
+    padding: 16,
   },
   header: {
     flexDirection: 'row',
@@ -334,54 +320,60 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerLeft: {
-    flex: 1,
-  },
-  categoryInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  periodText: {
-    opacity: 0.6,
-    marginTop: 2,
-  },
-  amountsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    gap: 8,
-  },
-  amountItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  amountLabel: {
-    opacity: 0.6,
-    marginBottom: 4,
-  },
-  amountValue: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 8,
+    flex: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryName: {
+    fontWeight: '600',
+    fontSize: 16,
+    marginBottom: 2,
+  },
+  periodText: {
+    opacity: 0.6,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  progressSection: {
+    gap: 8,
+  },
+  progressLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+  },
+  spentText: {
+    fontWeight: '700',
+    fontSize: 16,
+  },
+  totalText: {
+    opacity: 0.5,
+    fontWeight: '400',
   },
   progressBar: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F0F0F0',
   },
-  percentageText: {
-    fontWeight: 'bold',
-    minWidth: 50,
-    textAlign: 'right',
+  footer: {
+    marginTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
   },
   alertText: {
-    opacity: 0.7,
-    marginTop: 4,
+    opacity: 0.5,
+    fontStyle: 'italic',
   },
   emptyContainer: {
     flex: 1,
@@ -402,10 +394,10 @@ const styles = StyleSheet.create({
     right: 16,
     bottom: 16,
     borderRadius: 16,
-    shadowColor: '#000',
+    shadowColor: '#6200EA',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 8,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });
