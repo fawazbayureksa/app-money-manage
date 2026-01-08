@@ -115,7 +115,7 @@ export default function HomeScreen() {
       }
     >
       {/* Welcome Header */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 16, backgroundColor: theme.colors.primary }]}>
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 16, backgroundColor:'#1f6a79ff' }]}>
         <View style={styles.headerContent}>
           <View style={styles.welcomeSection}>
             <Text variant="labelLarge" style={styles.welcomeLabel}>
