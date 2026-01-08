@@ -2,8 +2,6 @@ import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestCo
 import API_CONFIG from '../config/api';
 import { storage } from '../utils/storage';
 
-// Log API client initialization
-console.log('🔌 API Client initialized with base URL:', API_CONFIG.BASE_URL);
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -23,8 +21,6 @@ apiClient.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
       
-      // Log outgoing request for debugging
-      console.log(`📤 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     } catch (error) {
       console.error('Error adding token to request:', error);
     }
@@ -40,7 +36,6 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Log successful response
-    console.log(`✅ API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
     return response;
   },
   async (error: AxiosError) => {

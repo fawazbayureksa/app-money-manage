@@ -33,9 +33,7 @@ export default function CategoryListScreen() {
     try {
       if (showLoader) setLoading(true);
       const response = await categoryService.getCategories();
-      console.log('API Response:', JSON.stringify(response, null, 2));
       if (response.success && response.data) {
-        console.log('Categories data:', JSON.stringify(response.data, null, 2));
         setCategories(response.data);
       }
     } catch (error: any) {

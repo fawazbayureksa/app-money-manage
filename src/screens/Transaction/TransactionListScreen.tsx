@@ -77,10 +77,7 @@ export default function TransactionListScreen() {
 
       const response = await transactionService.getTransactions(queryParams);
 
-      // console.log('Transactions Response:', JSON.stringify(response, null, 2));
-
       if (response.success && response.data) {
-        // console.log('Transactions data:', JSON.stringify(response.data, null, 2));
         const newData = response.data;
 
         if (pageNum === 1) {

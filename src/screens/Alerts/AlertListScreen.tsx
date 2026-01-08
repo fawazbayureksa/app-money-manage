@@ -37,10 +37,7 @@ export default function AlertListScreen() {
       const params = filterType === 'unread' ? { unread_only: true } : {};
       const response = await alertService.getAlerts(params);
 
-      console.log('Alerts Response:', JSON.stringify(response, null, 2));
-
       if (response.success && response.data) {
-        console.log('Alerts data:', JSON.stringify(response.data, null, 2));
         setAlerts(Array.isArray(response.data) ? response.data : []);
       }
     } catch (error: any) {

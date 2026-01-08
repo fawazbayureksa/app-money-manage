@@ -89,7 +89,6 @@ export default function RegisterScreen() {
     if (!validateForm()) {
       return;
     }
-    console.log('Registering with:', { username, email, password });
     try {
       // Trim all inputs to remove accidental spaces
       await register(username.trim(), email.trim(), password.trim());

@@ -1,11 +1,10 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  Alert,
   FlatList,
   RefreshControl,
   StyleSheet,
-  View,
+  View
 } from 'react-native';
 import {
   ActivityIndicator,
@@ -35,11 +34,7 @@ export default function BudgetListScreen() {
       if (showLoader) setLoading(true);
       const response = await budgetService.getBudgets();
 
-      console.log('Budgets Response:', JSON.stringify(response, null, 2));
-
       if (response.success && response.data) {
-        console.log('Budgets data:', JSON.stringify(response.data, null, 2));
-        // Extract the budgets array from the nested data structure
         const budgetsArray = response?.data?.data;
         setBudgets(Array.isArray(budgetsArray) ? budgetsArray : []);
       }
@@ -66,35 +61,7 @@ export default function BudgetListScreen() {
     setRefreshing(false);
   };
 
-  const handleDelete = (budgetId: number) => {
-    Alert.alert(
-      'Delete Budget',
-      'Are you sure you want to delete this budget?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const response = await budgetService.deleteBudget(budgetId);
-              if (response.success) {
-                setSnackbarMessage('Budget deleted successfully');
-                setSnackbarVisible(true);
-                fetchBudgets();
-              }
-            } catch (error: any) {
-              console.error('Error deleting budget:', error);
-              const errorMessage =
-                error.response?.data?.message || 'Failed to delete budget';
-              setSnackbarMessage(errorMessage);
-              setSnackbarVisible(true);
-            }
-          },
-        },
-      ]
-    );
-  };
+
 
   const formatCurrency = (amount: number): string => {
     return `Rp ${amount.toLocaleString('id-ID')}`;
@@ -130,11 +97,10 @@ export default function BudgetListScreen() {
     const statusColor = getStatusColor(item.status || 'safe');
     const remaining = item.remaining_amount || 0;
     const percentageUsed = item.percentage_used || 0;
-    const isOverBudget = item.status === 'exceeded';
 
     return (
       <Card
-        style={styles.card}
+        style={[styles.card, { backgroundColor: theme.colors.elevation.level2 }]}
         mode="elevated"
         onPress={() => handleBudgetPress(item)}
       >
@@ -181,7 +147,7 @@ export default function BudgetListScreen() {
             <ProgressBar
               progress={Math.min(percentageUsed / 100, 1)}
               color={statusColor}
-              style={styles.progressBar}
+              style={[styles.progressBar, { backgroundColor: theme.colors.surfaceVariant }]}
             />
           </View>
 
@@ -308,7 +274,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 0, // Cleaner look
     elevation: 2,
-    backgroundColor: 'white',
   },
   cardContent: {
     padding: 16,
@@ -364,7 +329,6 @@ const styles = StyleSheet.create({
   progressBar: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#F0F0F0',
   },
   footer: {
     marginTop: 12,
