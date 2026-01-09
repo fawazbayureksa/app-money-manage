@@ -115,7 +115,7 @@ export default function HomeScreen() {
       }
     >
       {/* Welcome Header */}
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 16, backgroundColor:'#1f6a79ff' }]}>
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 16, backgroundColor: '#1f6a79ff' }]}>
         <View style={styles.headerContent}>
           <View style={styles.welcomeSection}>
             <Text variant="labelLarge" style={styles.welcomeLabel}>
@@ -221,6 +221,164 @@ export default function HomeScreen() {
                   <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
                     {dashboardData.budget_summary.active_budgets}
                   </Text>
+                </View>
+              </View>
+            </Card.Content>
+          </Card>
+        </View>
+      )}
+
+      {/* Top Categories Section */}
+      {dashboardData && dashboardData.top_categories && dashboardData.top_categories.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Top Spending Categories
+            </Text>
+            <Chip
+              icon="chart-pie"
+              compact
+              onPress={() => router.push('/(tabs)/categories' as any)}
+            >
+              View All
+            </Chip>
+          </View>
+
+          <Card style={styles.categoriesCard}>
+            <Card.Content style={{ padding: 16 }}>
+              {dashboardData.top_categories.map((category, index) => {
+                // Generate distinct colors for each category
+                const colors = ['#E91E63', '#9C27B0', '#3F51B5', '#00BCD4', '#FF9800'];
+                const categoryColor = colors[index % colors.length];
+
+                return (
+                  <View key={index} style={styles.categoryItem}>
+                    <View style={styles.categoryHeader}>
+                      <View style={styles.categoryNameRow}>
+                        <View style={[styles.categoryColorDot, { backgroundColor: categoryColor }]} />
+                        <Text variant="titleSmall" style={styles.categoryName}>
+                          {category.category_name}
+                        </Text>
+                      </View>
+                      <Text variant="titleSmall" style={[styles.categoryAmount, { color: categoryColor }]}>
+                        {showAmounts ? formatCurrency(category.total_amount) : '••••••'}
+                      </Text>
+                    </View>
+
+                    <View style={styles.categoryProgressContainer}>
+                      <View style={styles.categoryProgressBackground}>
+                        <View
+                          style={[
+                            styles.categoryProgressBar,
+                            {
+                              width: `${Math.min(category.percentage, 100)}%`,
+                              backgroundColor: categoryColor
+                            }
+                          ]}
+                        />
+                      </View>
+                      <Text variant="bodySmall" style={styles.categoryPercentage}>
+                        {category.percentage.toFixed(1)}%
+                      </Text>
+                    </View>
+
+                    <Text variant="bodySmall" style={styles.categoryCount}>
+                      {category.count} transaction{category.count !== 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                );
+              })}
+            </Card.Content>
+          </Card>
+        </View>
+      )}
+
+      {/* Budget Summary Section */}
+      {dashboardData && dashboardData.budget_summary && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text variant="titleLarge" style={styles.sectionTitle}>
+              Budget Overview
+            </Text>
+            <Chip
+              icon="wallet"
+              compact
+              onPress={() => router.push('/budgets' as any)}
+            >
+              Manage
+            </Chip>
+          </View>
+
+          <Card style={styles.budgetSummaryCard}>
+            <Card.Content style={{ padding: 16 }}>
+              {/* Budget Utilization Progress */}
+              <View style={styles.budgetUtilizationContainer}>
+                <View style={styles.budgetUtilizationHeader}>
+                  <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>
+                    Overall Utilization
+                  </Text>
+                  <Text variant="headlineSmall" style={{
+                    fontWeight: 'bold',
+                    color: dashboardData.budget_summary.average_utilization >= 100 ? '#F44336' :
+                      dashboardData.budget_summary.average_utilization >= 80 ? '#FF9800' : '#4CAF50'
+                  }}>
+                    {dashboardData.budget_summary.average_utilization.toFixed(1)}%
+                  </Text>
+                </View>
+
+                <View style={styles.budgetProgressBackground}>
+                  <View
+                    style={[
+                      styles.budgetProgressBar,
+                      {
+                        width: `${Math.min(dashboardData.budget_summary.average_utilization, 100)}%`,
+                        backgroundColor: dashboardData.budget_summary.average_utilization >= 100 ? '#F44336' :
+                          dashboardData.budget_summary.average_utilization >= 80 ? '#FF9800' : '#4CAF50'
+                      }
+                    ]}
+                  />
+                </View>
+
+                <View style={styles.budgetAmountsRow}>
+                  <View>
+                    <Text variant="bodySmall" style={{ opacity: 0.6 }}>Spent</Text>
+                    <Text variant="titleMedium" style={{ fontWeight: 'bold', color: '#F44336' }}>
+                      {showAmounts ? formatCurrency(dashboardData.budget_summary.total_spent) : '••••••'}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text variant="bodySmall" style={{ opacity: 0.6 }}>Budget</Text>
+                    <Text variant="titleMedium" style={{ fontWeight: 'bold', color: theme.colors.primary }}>
+                      {showAmounts ? formatCurrency(dashboardData.budget_summary.total_budgeted) : '••••••'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Budget Status Cards */}
+              <View style={styles.budgetStatsGrid}>
+                <View style={[styles.budgetStatItem, { backgroundColor: '#4CAF5015' }]}>
+                  <IconButton icon="check-circle" iconColor="#4CAF50" size={24} style={{ margin: 0 }} />
+                  <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: '#4CAF50' }}>
+                    {dashboardData.budget_summary.active_budgets}
+                  </Text>
+                  <Text variant="bodySmall" style={{ opacity: 0.7 }}>Active</Text>
+                </View>
+
+                <View style={[styles.budgetStatItem, { backgroundColor: '#FF980015' }]}>
+                  <IconButton icon="alert" iconColor="#FF9800" size={24} style={{ margin: 0 }} />
+                  <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: '#FF9800' }}>
+                    {dashboardData.budget_summary.warning_budgets}
+                  </Text>
+                  <Text variant="bodySmall" style={{ opacity: 0.7 }}>Warning</Text>
+                </View>
+
+                <View style={[styles.budgetStatItem, { backgroundColor: '#F4433615' }]}>
+                  <IconButton icon="alert-circle" iconColor="#F44336" size={24} style={{ margin: 0 }} />
+                  <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: '#F44336' }}>
+                    {dashboardData.budget_summary.exceeded_budgets}
+                  </Text>
+                  <Text variant="bodySmall" style={{ opacity: 0.7 }}>Exceeded</Text>
                 </View>
               </View>
             </Card.Content>
@@ -706,6 +864,101 @@ const styles = StyleSheet.create({
   accountEmail: {
     opacity: 0.6,
     marginTop: 4,
+  },
+  // Top Categories Styles
+  categoriesCard: {
+    borderRadius: 16,
+  },
+  categoryItem: {
+    marginBottom: 20,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  categoryNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryColorDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  categoryName: {
+    fontWeight: '600',
+  },
+  categoryAmount: {
+    fontWeight: 'bold',
+  },
+  categoryProgressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  categoryProgressBackground: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  categoryProgressBar: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  categoryPercentage: {
+    fontWeight: '600',
+    minWidth: 45,
+    textAlign: 'right',
+  },
+  categoryCount: {
+    opacity: 0.6,
+    fontSize: 12,
+  },
+  // Budget Summary Styles
+  budgetSummaryCard: {
+    borderRadius: 16,
+  },
+  budgetUtilizationContainer: {
+    marginBottom: 20,
+  },
+  budgetUtilizationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  budgetProgressBackground: {
+    height: 12,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 6,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  budgetProgressBar: {
+    height: '100%',
+    borderRadius: 6,
+  },
+  budgetAmountsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  budgetStatsGrid: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+  },
+  budgetStatItem: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
   },
 });
 
