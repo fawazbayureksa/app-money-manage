@@ -16,7 +16,7 @@ export default ({ config }) => {
       slug: "money-manage",
       version: "1.0.0",
       orientation: "portrait",
-      icon: "./assets/images/icon.png",
+      icon: "./assets/images/logo.png",
       scheme: "moneymanage",
       userInterfaceStyle: "automatic",
       newArchEnabled: true,
@@ -40,14 +40,14 @@ export default ({ config }) => {
       },
       web: {
         output: "static",
-        favicon: "./assets/images/favicon.png"
+        favicon: "./assets/images/logo.png"
       },
       plugins: [
         "expo-router",
         [
           "expo-splash-screen",
           {
-            image: "./assets/images/splash-icon.png",
+            image: "./assets/images/logo-splash.png",
             imageWidth: 200,
             resizeMode: "contain",
             backgroundColor: "#ffffff",
