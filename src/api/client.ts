@@ -1,4 +1,5 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import { router } from 'expo-router';
 import API_CONFIG from '../config/api';
 import { storage } from '../utils/storage';
 
@@ -20,7 +21,7 @@ apiClient.interceptors.request.use(
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-      
+
     } catch (error) {
       console.error('Error adding token to request:', error);
     }
@@ -50,7 +51,7 @@ apiClient.interceptors.response.use(
         message: error.message,
         data: error.response.data,
       });
-      
+
       // Special handling for 404 errors
       if (error.response.status === 404) {
         console.error('🔍 404 Not Found - Possible causes:');
@@ -77,13 +78,17 @@ apiClient.interceptors.response.use(
       console.error('❌ Request setup error:', error.message);
     }
 
-    // Handle 401 Unauthorized
+    // Handle 401 Unauthorized - Auto logout and redirect to login
     if (error.response?.status === 401) {
       try {
+        console.log('🔒 401 Unauthorized - Logging out and redirecting to login');
         await storage.clearAll();
-        // Navigation to login will be handled by AuthContext
+        // Use replace to prevent going back to protected routes
+        router.replace('/login');
       } catch (storageError) {
         console.error('Error clearing storage:', storageError);
+        // Still try to redirect even if storage clear fails
+        router.replace('/login');
       }
     }
 
