@@ -28,6 +28,7 @@ export default function AlertListScreen() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'unread'>('all');
+  const [markingAllAsRead, setMarkingAllAsRead] = useState(false);
 
   // Fetch alerts
   const fetchAlerts = async (showLoader = true) => {
@@ -80,6 +81,29 @@ export default function AlertListScreen() {
         error.response?.data?.message || 'Failed to mark alert as read';
       setSnackbarMessage(errorMessage);
       setSnackbarVisible(true);
+    }
+  };
+
+  // Mark all alerts as read
+  const handleMarkAllAsRead = async () => {
+    try {
+      setMarkingAllAsRead(true);
+      const response = await alertService.markAllAsRead();
+
+      if (response.success) {
+        setSnackbarMessage(response.message);
+        setSnackbarVisible(true);
+        await fetchAlerts(false); // Refresh the list
+      } else {
+        setSnackbarMessage(response.message || 'Failed to mark all alerts as read');
+        setSnackbarVisible(true);
+      }
+    } catch (error: any) {
+      console.error('Error marking all alerts as read:', error);
+      setSnackbarMessage('Failed to mark all alerts as read');
+      setSnackbarVisible(true);
+    } finally {
+      setMarkingAllAsRead(false);
     }
   };
 
@@ -236,23 +260,41 @@ export default function AlertListScreen() {
     </View>
   );
 
+  // Check if there are unread alerts
+  const hasUnreadAlerts = alerts.some(alert => !alert.is_read);
+
   // Render filter chips
   const renderFilters = () => (
     <View style={styles.filterContainer}>
-      <Chip
-        selected={filterType === 'all'}
-        onPress={() => setFilterType('all')}
-        style={styles.filterChip}
-      >
-        All
-      </Chip>
-      <Chip
-        selected={filterType === 'unread'}
-        onPress={() => setFilterType('unread')}
-        style={styles.filterChip}
-      >
-        Unread
-      </Chip>
+      <View style={styles.filterChips}>
+        <Chip
+          selected={filterType === 'all'}
+          onPress={() => setFilterType('all')}
+          style={styles.filterChip}
+        >
+          All
+        </Chip>
+        <Chip
+          selected={filterType === 'unread'}
+          onPress={() => setFilterType('unread')}
+          style={styles.filterChip}
+        >
+          Unread
+        </Chip>
+      </View>
+      {hasUnreadAlerts && (
+        <Button
+          mode="outlined"
+          icon="check-all"
+          onPress={handleMarkAllAsRead}
+          disabled={markingAllAsRead}
+          loading={markingAllAsRead}
+          compact
+          style={styles.markAllButton}
+        >
+          Mark All Read
+        </Button>
+      )}
     </View>
   );
 
@@ -311,11 +353,20 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 16,
+    gap: 8,
+  },
+  filterChips: {
+    flexDirection: 'row',
     gap: 8,
   },
   filterChip: {
     marginRight: 8,
+  },
+  markAllButton: {
+    borderRadius: 8,
   },
   listContent: {
     padding: 16,
