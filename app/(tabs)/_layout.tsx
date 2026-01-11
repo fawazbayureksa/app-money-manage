@@ -96,7 +96,6 @@ export default function TabLayout() {
         name="categories"
         options={{
           title: '',
-          href: null,
           tabBarButton: () => <AddButton />,
         }}
         />
