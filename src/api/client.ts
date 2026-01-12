@@ -84,11 +84,15 @@ apiClient.interceptors.response.use(
         console.log('🔒 401 Unauthorized - Logging out and redirecting to login');
         await storage.clearAll();
         // Use replace to prevent going back to protected routes
-        router.replace('/login');
+        setTimeout(() => {
+          router.replace('/login');
+        }, 0);
       } catch (storageError) {
         console.error('Error clearing storage:', storageError);
         // Still try to redirect even if storage clear fails
-        router.replace('/login');
+        setTimeout(() => {
+          router.replace('/login');
+        }, 0);
       }
     }
 
