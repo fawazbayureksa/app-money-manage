@@ -55,7 +55,12 @@ export default function AlertListScreen() {
         const alertsData = response.data.data || [];
 
         if (append) {
-          setAlerts((prev) => [...prev, ...alertsData]);
+          // Deduplicate alerts by id when appending
+          setAlerts((prev) => {
+            const existingIds = new Set(prev.map((a) => a.id));
+            const newAlerts = alertsData.filter((a) => !existingIds.has(a.id));
+            return [...prev, ...newAlerts];
+          });
         } else {
           setAlerts(alertsData);
         }
@@ -378,7 +383,7 @@ export default function AlertListScreen() {
       <FlatList
         data={alerts}
         renderItem={renderAlertItem}
-        keyExtractor={(item, index) => item?.id?.toString() || `alert-${index}`}
+        keyExtractor={(item, index) => `${item?.id ?? "alert"}-${index}`}
         contentContainerStyle={[
           styles.listContent,
           alerts.length === 0 && styles.emptyListContent,
