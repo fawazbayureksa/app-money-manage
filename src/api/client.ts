@@ -1,6 +1,6 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { router } from 'expo-router';
 import API_CONFIG from '../config/api';
+import { handleApiError, handleSessionExpired } from '../context/ToastContext';
 import { storage } from '../utils/storage';
 
 
@@ -33,6 +33,9 @@ apiClient.interceptors.request.use(
   }
 );
 
+// Endpoints that should NOT show error popups (auth endpoints handle their own errors)
+const SILENT_ERROR_ENDPOINTS = ['/login', '/register'];
+
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
@@ -40,6 +43,9 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
+    const requestUrl = error.config?.url || '';
+    const isSilentEndpoint = SILENT_ERROR_ENDPOINTS.some(endpoint => requestUrl.includes(endpoint));
+
     // Detailed error logging for debugging
     if (error.response) {
       // Server responded with error status
@@ -78,27 +84,22 @@ apiClient.interceptors.response.use(
       console.error('❌ Request setup error:', error.message);
     }
 
-    // Handle 401 Unauthorized - Auto logout and redirect to login
+    // Handle 401 Unauthorized - Show session expired popup and redirect
     if (error.response?.status === 401) {
-      try {
-        console.log('🔒 401 Unauthorized - Logging out and redirecting to login');
-        await storage.clearAll();
-        // Use replace to prevent going back to protected routes
-        setTimeout(() => {
-          router.replace('/login');
-        }, 0);
-      } catch (storageError) {
-        console.error('Error clearing storage:', storageError);
-        // Still try to redirect even if storage clear fails
-        setTimeout(() => {
-          router.replace('/login');
-        }, 0);
-      }
+      console.log('🔒 401 Unauthorized - Session expired');
+      await handleSessionExpired();
+    } else if (error.response && !isSilentEndpoint) {
+      // Show general error popup for other server errors (except auth endpoints)
+      handleApiError();
+    } else if (!error.response && !isSilentEndpoint) {
+      // Network error - show popup
+      handleApiError();
     }
 
     return Promise.reject(error);
   }
 );
+
 
 // API response type
 export interface ApiResponse<T = any> {
