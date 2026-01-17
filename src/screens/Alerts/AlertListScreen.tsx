@@ -1,11 +1,6 @@
-import { useFocusEffect } from 'expo-router';
-import React, { useCallback, useState } from 'react';
-import {
-  FlatList,
-  RefreshControl,
-  StyleSheet,
-  View
-} from 'react-native';
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
+import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import {
   ActivityIndicator,
   Button,
@@ -15,8 +10,8 @@ import {
   Snackbar,
   Text,
   useTheme,
-} from 'react-native-paper';
-import { BudgetAlert, alertService } from '../../api/alertService';
+} from "react-native-paper";
+import { AlertParams, BudgetAlert, alertService } from "../../api/alertService";
 
 export default function AlertListScreen() {
   const theme = useTheme();
@@ -25,45 +20,83 @@ export default function AlertListScreen() {
   const [alerts, setAlerts] = useState<BudgetAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'unread'>('all');
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [filterType, setFilterType] = useState<"all" | "unread">("all");
   const [markingAllAsRead, setMarkingAllAsRead] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const pageSize = 10;
+
   // Fetch alerts
-  const fetchAlerts = async (showLoader = true) => {
+  const fetchAlerts = async (showLoader = true, page = 1, append = false) => {
     try {
       if (showLoader) setLoading(true);
+      if (append) setLoadingMore(true);
 
-      const params = filterType === 'unread' ? { unread_only: true } : {};
+      const params: AlertParams = {
+        page,
+        page_size: pageSize,
+        sort_by: "created_at",
+        sort_dir: "desc",
+      };
+
+      if (filterType === "unread") {
+        params.unread_only = true;
+      }
+
       const response = await alertService.getAlerts(params);
 
       if (response.success && response.data) {
-        setAlerts(Array.isArray(response.data) ? response.data : []);
+        const alertsData = response.data.data || [];
+
+        if (append) {
+          setAlerts((prev) => [...prev, ...alertsData]);
+        } else {
+          setAlerts(alertsData);
+        }
+
+        setCurrentPage(response.data.page);
+        setTotalPages(response.data.total_pages);
+        setTotalItems(response.data.total_items);
       }
     } catch (error: any) {
-      console.error('Error fetching alerts:', error);
+      console.error("Error fetching alerts:", error);
       const errorMessage =
-        error.response?.data?.message || 'Failed to load alerts';
+        error.response?.data?.message || "Failed to load alerts";
       setSnackbarMessage(errorMessage);
       setSnackbarVisible(true);
     } finally {
       if (showLoader) setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
   };
 
   // Load alerts when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      fetchAlerts();
-    }, [filterType])
+      setCurrentPage(1);
+      fetchAlerts(true, 1, false);
+    }, [filterType]),
   );
 
   // Handle pull to refresh
   const onRefresh = () => {
     setRefreshing(true);
-    fetchAlerts(false);
+    setCurrentPage(1);
+    fetchAlerts(false, 1, false);
+  };
+
+  // Handle load more (pagination)
+  const handleLoadMore = () => {
+    if (!loadingMore && currentPage < totalPages) {
+      fetchAlerts(false, currentPage + 1, true);
+    }
   };
 
   // Mark alert as read
@@ -71,14 +104,14 @@ export default function AlertListScreen() {
     try {
       const response = await alertService.markAsRead(alertId);
       if (response.success) {
-        setSnackbarMessage('Alert marked as read');
+        setSnackbarMessage("Alert marked as read");
         setSnackbarVisible(true);
-        fetchAlerts(false);
+        fetchAlerts(false, 1, false);
       }
     } catch (error: any) {
-      console.error('Error marking alert as read:', error);
+      console.error("Error marking alert as read:", error);
       const errorMessage =
-        error.response?.data?.message || 'Failed to mark alert as read';
+        error.response?.data?.message || "Failed to mark alert as read";
       setSnackbarMessage(errorMessage);
       setSnackbarVisible(true);
     }
@@ -93,14 +126,16 @@ export default function AlertListScreen() {
       if (response.success) {
         setSnackbarMessage(response.message);
         setSnackbarVisible(true);
-        await fetchAlerts(false); // Refresh the list
+        await fetchAlerts(false, 1, false); // Refresh the list
       } else {
-        setSnackbarMessage(response.message || 'Failed to mark all alerts as read');
+        setSnackbarMessage(
+          response.message || "Failed to mark all alerts as read",
+        );
         setSnackbarVisible(true);
       }
     } catch (error: any) {
-      console.error('Error marking all alerts as read:', error);
-      setSnackbarMessage('Failed to mark all alerts as read');
+      console.error("Error marking all alerts as read:", error);
+      setSnackbarMessage("Failed to mark all alerts as read");
       setSnackbarVisible(true);
     } finally {
       setMarkingAllAsRead(false);
@@ -109,9 +144,9 @@ export default function AlertListScreen() {
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
       minimumFractionDigits: 0,
     }).format(amount);
   };
@@ -125,30 +160,31 @@ export default function AlertListScreen() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
+    if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    if (diffHours < 24)
+      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
 
-    return date.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
+    return date.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     });
   };
 
   // Get alert color based on percentage
   const getAlertColor = (percentage: number): string => {
-    if (percentage >= 100) return '#F44336'; // Red - exceeded
-    if (percentage >= 80) return '#FF9800'; // Orange - warning
-    return '#4CAF50'; // Green - safe
+    if (percentage >= 100) return "#F44336"; // Red - exceeded
+    if (percentage >= 80) return "#FF9800"; // Orange - warning
+    return "#4CAF50"; // Green - safe
   };
 
   // Get alert icon based on percentage
   const getAlertIcon = (percentage: number): string => {
-    if (percentage >= 100) return 'alert-circle';
-    if (percentage >= 80) return 'alert';
-    return 'information';
+    if (percentage >= 100) return "alert-circle";
+    if (percentage >= 80) return "alert";
+    return "information";
   };
 
   // Render alert item
@@ -160,7 +196,7 @@ export default function AlertListScreen() {
       <Card
         style={[
           styles.card,
-          !item.is_read && { borderLeftWidth: 4, borderLeftColor: alertColor }
+          !item.is_read && { borderLeftWidth: 4, borderLeftColor: alertColor },
         ]}
         mode="elevated"
       >
@@ -171,7 +207,10 @@ export default function AlertListScreen() {
                 icon={alertIcon}
                 iconColor={alertColor}
                 size={24}
-                style={[styles.alertIcon, { backgroundColor: alertColor + '20' }]}
+                style={[
+                  styles.alertIcon,
+                  { backgroundColor: alertColor + "20" },
+                ]}
               />
             </View>
 
@@ -181,7 +220,12 @@ export default function AlertListScreen() {
                   {item.category_name}
                 </Text>
                 {!item.is_read && (
-                  <View style={[styles.unreadDot, { backgroundColor: theme.colors.error }]} />
+                  <View
+                    style={[
+                      styles.unreadDot,
+                      { backgroundColor: theme.colors.error },
+                    ]}
+                  />
                 )}
               </View>
 
@@ -194,7 +238,10 @@ export default function AlertListScreen() {
                   <Text variant="bodySmall" style={styles.amountLabel}>
                     Spent
                   </Text>
-                  <Text variant="bodyMedium" style={[styles.amountValue, { color: alertColor }]}>
+                  <Text
+                    variant="bodyMedium"
+                    style={[styles.amountValue, { color: alertColor }]}
+                  >
                     {formatCurrency(item.spent_amount)}
                   </Text>
                 </View>
@@ -210,7 +257,10 @@ export default function AlertListScreen() {
                   <Text variant="bodySmall" style={styles.amountLabel}>
                     Usage
                   </Text>
-                  <Text variant="bodyMedium" style={[styles.amountValue, { color: alertColor }]}>
+                  <Text
+                    variant="bodyMedium"
+                    style={[styles.amountValue, { color: alertColor }]}
+                  >
                     {item.percentage.toFixed(0)}%
                   </Text>
                 </View>
@@ -228,7 +278,7 @@ export default function AlertListScreen() {
                     onPress={() => handleMarkAsRead(item.id)}
                     style={styles.markReadButton}
                     labelStyle={styles.markReadButtonLabel}
-                    contentStyle={{ flexDirection: 'row-reverse' }}
+                    contentStyle={{ flexDirection: "row-reverse" }}
                   >
                     Mark Read
                   </Button>
@@ -250,10 +300,10 @@ export default function AlertListScreen() {
         iconColor={theme.colors.outline}
       />
       <Text variant="headlineSmall" style={styles.emptyTitle}>
-        {filterType === 'unread' ? 'No Unread Alerts' : 'No Alerts Yet'}
+        {filterType === "unread" ? "No Unread Alerts" : "No Alerts Yet"}
       </Text>
       <Text variant="bodyMedium" style={styles.emptyText}>
-        {filterType === 'unread'
+        {filterType === "unread"
           ? "You're all caught up!"
           : "You'll be notified when you approach your budget limits"}
       </Text>
@@ -261,22 +311,22 @@ export default function AlertListScreen() {
   );
 
   // Check if there are unread alerts
-  const hasUnreadAlerts = alerts.some(alert => !alert.is_read);
+  const hasUnreadAlerts = alerts.some((alert) => !alert.is_read);
 
   // Render filter chips
   const renderFilters = () => (
     <View style={styles.filterContainer}>
       <View style={styles.filterChips}>
         <Chip
-          selected={filterType === 'all'}
-          onPress={() => setFilterType('all')}
+          selected={filterType === "all"}
+          onPress={() => setFilterType("all")}
           style={styles.filterChip}
         >
-          All
+          All {totalItems > 0 && `(${totalItems})`}
         </Chip>
         <Chip
-          selected={filterType === 'unread'}
-          onPress={() => setFilterType('unread')}
+          selected={filterType === "unread"}
+          onPress={() => setFilterType("unread")}
           style={styles.filterChip}
         >
           Unread
@@ -298,6 +348,19 @@ export default function AlertListScreen() {
     </View>
   );
 
+  // Render footer for load more
+  const renderFooter = () => {
+    if (!loadingMore) return null;
+    return (
+      <View style={styles.loadingMore}>
+        <ActivityIndicator size="small" color={theme.colors.primary} />
+        <Text variant="bodySmall" style={styles.loadingMoreText}>
+          Loading more...
+        </Text>
+      </View>
+    );
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -307,7 +370,9 @@ export default function AlertListScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <View
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+    >
       {renderFilters()}
 
       <FlatList
@@ -319,6 +384,9 @@ export default function AlertListScreen() {
           alerts.length === 0 && styles.emptyListContent,
         ]}
         ListEmptyComponent={renderEmptyState}
+        ListFooterComponent={renderFooter}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -333,7 +401,7 @@ export default function AlertListScreen() {
         onDismiss={() => setSnackbarVisible(false)}
         duration={3000}
         action={{
-          label: 'Dismiss',
+          label: "Dismiss",
           onPress: () => setSnackbarVisible(false),
         }}
       >
@@ -348,18 +416,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   filterContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     gap: 8,
   },
   filterChips: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   filterChip: {
@@ -375,18 +443,18 @@ const styles = StyleSheet.create({
   },
   emptyListContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   card: {
     marginBottom: 12,
     borderRadius: 12,
   },
   cardHeader: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   iconContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   alertIcon: {
     margin: 0,
@@ -396,12 +464,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   categoryName: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     flex: 1,
   },
   unreadDot: {
@@ -415,30 +483,30 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   amountsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(0,0,0,0.03)',
+    backgroundColor: "rgba(0,0,0,0.03)",
     borderRadius: 8,
   },
   amountItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   amountLabel: {
     opacity: 0.6,
     marginBottom: 4,
   },
   amountValue: {
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontWeight: "bold",
+    textAlign: "center",
   },
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   timestamp: {
     opacity: 0.6,
@@ -453,19 +521,29 @@ const styles = StyleSheet.create({
     marginHorizontal: 8,
   },
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 32,
   },
   emptyTitle: {
     marginTop: 16,
     marginBottom: 8,
-    textAlign: 'center',
-    fontWeight: 'bold',
+    textAlign: "center",
+    fontWeight: "bold",
   },
   emptyText: {
-    textAlign: 'center',
+    textAlign: "center",
     opacity: 0.7,
     maxWidth: 300,
+  },
+  loadingMore: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 16,
+    gap: 8,
+  },
+  loadingMoreText: {
+    opacity: 0.7,
   },
 });
