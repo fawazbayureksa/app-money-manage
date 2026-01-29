@@ -108,6 +108,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="wallets"
+        options={{
+          title: 'Wallets',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="wallet" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="alerts"
         options={{
           title: 'Alerts',

@@ -808,6 +808,38 @@ export default function HomeScreen() {
 
         <Card
           style={styles.actionCard}
+          onPress={() => router.push("/wallets" as any)}
+        >
+          <Card.Content style={styles.actionContent}>
+            <View
+              style={[
+                styles.actionIcon,
+                { backgroundColor: "#FF980020" },
+              ]}
+            >
+              <IconButton
+                icon="account-balance-wallet"
+                size={28}
+                iconColor="#FF9800"
+                style={{ margin: 0 }}
+              />
+            </View>
+            <View style={styles.actionText}>
+              <Text variant="titleMedium">Wallets</Text>
+              <Text variant="bodySmall" style={styles.actionDescription}>
+                Manage your assets and accounts
+              </Text>
+            </View>
+            <IconButton
+              icon="chevron-right"
+              size={24}
+              iconColor={theme.colors.primary}
+            />
+          </Card.Content>
+        </Card>
+
+        <Card
+          style={styles.actionCard}
           onPress={() => router.push("/(tabs)/categories" as any)}
         >
           <Card.Content style={styles.actionContent}>
