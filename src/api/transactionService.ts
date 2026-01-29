@@ -26,6 +26,7 @@ export interface TransactionListParams {
   end_date?: string;
   transaction_type?: 'Income' | 'Expense';
   category_id?: number;
+  bank_id?: number;
 }
 
 export interface PaginationData {

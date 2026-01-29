@@ -18,6 +18,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { Transaction, transactionService } from '../../api/transactionService';
+import { Bank, bankService } from '../../api/bankService';
 import { formatCurrency, formatDateShort } from '../../utils/formatters';
 
 export default function TransactionListScreen() {
@@ -28,6 +29,7 @@ export default function TransactionListScreen() {
     category_id?: string;
     start_date?: string;
     end_date?: string;
+    bank_id?: string;
   }>();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -36,6 +38,7 @@ export default function TransactionListScreen() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [filterType, setFilterType] = useState<'All' | 'Income' | 'Expense'>('All');
+  const [banks, setBanks] = useState<Bank[]>([]);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -54,7 +57,7 @@ export default function TransactionListScreen() {
   React.useEffect(() => {
     setPage(1);
     setHasMore(true);
-  }, [filterType, params.category_id, params.start_date, params.end_date]);
+  }, [filterType, params.category_id, params.start_date, params.end_date, params.bank_id]);
 
   // Fetch transactions
   const fetchTransactions = useCallback(async (pageNum = 1, shouldRefresh = false) => {
@@ -72,6 +75,7 @@ export default function TransactionListScreen() {
 
       // Add other filters from params if they exist
       if (params.category_id) queryParams.category_id = parseInt(params.category_id);
+      if (params.bank_id) queryParams.bank_id = parseInt(params.bank_id);
       if (params.start_date) queryParams.start_date = params.start_date;
       if (params.end_date) queryParams.end_date = params.end_date;
 
@@ -111,8 +115,20 @@ export default function TransactionListScreen() {
   useFocusEffect(
     useCallback(() => {
       fetchTransactions(1);
+      fetchBanks();
     }, [fetchTransactions])
   );
+
+  const fetchBanks = async () => {
+    try {
+      const response = await bankService.getBanks();
+      if (response.success && response.data) {
+        setBanks(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching banks:', error);
+    }
+  };
 
   // Handle pull to refresh
   const onRefresh = () => {
@@ -253,6 +269,7 @@ export default function TransactionListScreen() {
           setFilterType('All');
           router.setParams({
             category_id: undefined,
+            bank_id: undefined,
             start_date: undefined,
             end_date: undefined
           });
@@ -288,9 +305,36 @@ export default function TransactionListScreen() {
     );
   }
 
+  const renderActiveFilters = () => {
+    const hasActiveFilter = params.category_id || params.bank_id || params.start_date || params.end_date;
+    if (!hasActiveFilter) return null;
+
+    return (
+      <View style={styles.activeFiltersContainer}>
+        <Text variant="labelSmall" style={styles.activeFilterLabel}>Active Filters:</Text>
+        {params.category_id && (
+          <Chip icon="tag" onClose={() => router.setParams({ category_id: undefined })} compact mode="flat">
+            Category #{params.category_id}
+          </Chip>
+        )}
+        {params.bank_id && (
+          <Chip icon="bank" onClose={() => router.setParams({ bank_id: undefined })} compact mode="flat">
+            {banks.find(b => b.id === parseInt(params.bank_id!))?.bank_name || `Bank #${params.bank_id}`}
+          </Chip>
+        )}
+        {params.start_date && params.end_date && (
+          <Chip icon="calendar" onClose={() => router.setParams({ start_date: undefined, end_date: undefined })} compact mode="flat">
+            {params.start_date} - {params.end_date}
+          </Chip>
+        )}
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {renderFilters()}
+      {renderActiveFilters()}
       <FlatList
         data={transactions}
         renderItem={renderTransactionItem}

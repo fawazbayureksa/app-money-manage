@@ -121,7 +121,10 @@ export default function BudgetListScreen() {
                   {item.category_name || 'No Category'}
                 </Text>
                 <Text variant="labelSmall" style={styles.periodText}>
-                  {item.period === 'monthly' ? 'Monthly' : 'Yearly'} • {remaining < 0 ? 'Over by' : 'Left:'} {formatCurrency(Math.abs(remaining))}
+                  {item.period === 'monthly' ? 'Monthly' : 'Yearly'} • {item.asset_id ? item.asset_name : 'All Assets'}
+                </Text>
+                <Text variant="labelSmall" style={styles.spendingText}>
+                  {remaining < 0 ? 'Over by' : 'Left:'} {formatCurrency(Math.abs(remaining))}
                 </Text>
               </View>
             </View>
@@ -186,14 +189,20 @@ export default function BudgetListScreen() {
       endDate = end.toISOString().split('T')[0];
     }
 
+    const params: any = {
+      category_id: budget.category_id,
+      start_date: startDate,
+      end_date: endDate,
+      type: 'Expense'
+    };
+
+    if (budget.asset_id) {
+      params.bank_id = budget.asset_id;
+    }
+
     router.push({
       pathname: '/transactions',
-      params: {
-        category_id: budget.category_id,
-        start_date: startDate,
-        end_date: endDate,
-        type: 'Expense' // Budgets are typically for expenses
-      }
+      params
     } as any);
   };
 
@@ -304,6 +313,9 @@ const styles = StyleSheet.create({
   },
   periodText: {
     opacity: 0.6,
+  },
+  spendingText: {
+    opacity: 0.7,
   },
   statusBadge: {
     paddingHorizontal: 8,
