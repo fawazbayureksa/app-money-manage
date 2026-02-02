@@ -1,13 +1,13 @@
 /**
  * Currency Formatter
- * Formats numbers to Indonesian Rupiah (IDR) format
+ * Formats numbers to specified currency format (defaults to IDR)
  */
-export const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('id-ID', {
+export const formatCurrency = (amount: number, currencyCode: string = 'IDR'): string => {
+    return new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
+        currency: currencyCode,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
     }).format(amount);
 };
 
@@ -134,4 +134,17 @@ export const formatNumber = (num: number): string => {
  */
 export const formatPercentage = (num: number): string => {
     return `${num.toFixed(1)}%`;
+};
+
+/**
+ * Get Currency Symbol
+ * Returns the currency symbol for a given currency code
+ */
+export const getCurrencySymbol = (currencyCode: string = 'IDR'): string => {
+    return (0).toLocaleString('en-US', {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).replace(/[0-9]/g, '');
 };
