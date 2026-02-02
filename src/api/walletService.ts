@@ -1,4 +1,4 @@
-import apiClient, { ApiResponse } from './client';
+import apiClient, { ApiResponse } from "./client";
 
 export interface Wallet {
   id: number;
@@ -51,38 +51,51 @@ export const walletService = {
     page_size?: number;
     currency?: string;
     type?: string;
-  }): Promise<ApiResponse<WalletListResponse>> => {
-    const response = await apiClient.get<ApiResponse<WalletListResponse>>('/wallets', {
+  }): Promise<ApiResponse<Wallet[]>> => {
+    const response = await apiClient.get<ApiResponse<Wallet[]>>("/wallets", {
       params,
     });
     return response.data;
   },
 
   getWallet: async (walletId: number): Promise<ApiResponse<Wallet>> => {
-    const response = await apiClient.get<ApiResponse<Wallet>>(`/wallets/${walletId}`);
+    const response = await apiClient.get<ApiResponse<Wallet>>(
+      `/wallets/${walletId}`,
+    );
     return response.data;
   },
 
   getWalletSummary: async (): Promise<ApiResponse<WalletSummary[]>> => {
-    const response = await apiClient.get<ApiResponse<WalletSummary[]>>('/wallets/summary');
+    const response =
+      await apiClient.get<ApiResponse<WalletSummary[]>>("/wallets/summary");
     return response.data;
   },
 
-  createWallet: async (data: CreateWalletRequest): Promise<ApiResponse<Wallet>> => {
-    const response = await apiClient.post<ApiResponse<Wallet>>('/wallets', data);
+  createWallet: async (
+    data: CreateWalletRequest,
+  ): Promise<ApiResponse<Wallet>> => {
+    const response = await apiClient.post<ApiResponse<Wallet>>(
+      "/wallets",
+      data,
+    );
     return response.data;
   },
 
   updateWallet: async (
     walletId: number,
-    data: UpdateWalletRequest
+    data: UpdateWalletRequest,
   ): Promise<ApiResponse<Wallet>> => {
-    const response = await apiClient.put<ApiResponse<Wallet>>(`/wallets/${walletId}`, data);
+    const response = await apiClient.put<ApiResponse<Wallet>>(
+      `/wallets/${walletId}`,
+      data,
+    );
     return response.data;
   },
 
   deleteWallet: async (walletId: number): Promise<ApiResponse> => {
-    const response = await apiClient.delete<ApiResponse>(`/wallets/${walletId}`);
+    const response = await apiClient.delete<ApiResponse>(
+      `/wallets/${walletId}`,
+    );
     return response.data;
   },
 };

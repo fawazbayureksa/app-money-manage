@@ -1,32 +1,39 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Tabs, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Tabs, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { Platform, Pressable, StyleSheet, View } from "react-native";
 
-import { HapticTab } from '@/components/haptic-tab';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-import { alertService } from '@/src/api/alertService';
-import AlertBadge from '@/src/components/AlertBadge';
+import { HapticTab } from "@/components/haptic-tab";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { alertService } from "@/src/api/alertService";
+import AlertBadge from "@/src/components/AlertBadge";
 
 // Custom Add Button Component
 function AddButton() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const isDark = colorScheme === "dark";
 
   const platform = Platform.OS;
-  
+
   // Use brighter color for dark mode for better visibility
-  const buttonColor = isDark ? '#9f68ecff' : Colors[colorScheme ?? 'light'].tint;
+  const buttonColor = isDark
+    ? "#9f68ecff"
+    : Colors[colorScheme ?? "light"].tint;
 
   return (
     <View style={styles.addButtonContainer}>
       {isDark && (
-        <View style={[styles.addButtonGlow, { backgroundColor: buttonColor, opacity: 0.3 }]} />
+        <View
+          style={[
+            styles.addButtonGlow,
+            { backgroundColor: buttonColor, opacity: 0.3 },
+          ]}
+        />
       )}
       <Pressable
-        onPress={() => router.push('/(tabs)/transactions/add' as any)}
+        onPress={() => router.push("/(tabs)/transactions/add" as any)}
         style={[
           styles.addButton,
           {
@@ -51,7 +58,7 @@ export default function TabLayout() {
       const count = await alertService.getUnreadCount();
       setUnreadCount(count);
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      console.error("Error fetching unread count:", error);
     }
   };
 
@@ -67,57 +74,68 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 88 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 8,
+          height: Platform.OS === "ios" ? 88 : 64,
+          paddingBottom: Platform.OS === "ios" ? 28 : 8,
           paddingTop: 8,
         },
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: "Home",
           headerShown: false,
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="home" size={24} color={color} />,
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="home" size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="transactions"
         options={{
-          title: 'Transactions',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="format-list-bulleted" size={24} color={color} />,
+          title: "Transactions",
+          headerShown: false,
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons
+              name="format-list-bulleted"
+              size={24}
+              color={color}
+            />
+          ),
         }}
       />
-      {Platform.OS !== 'web' &&
+      {Platform.OS !== "web" && (
         <Tabs.Screen
-        name="categories"
-        options={{
-          title: '',
-          tabBarButton: () => <AddButton />,
-        }}
+          name="categories"
+          options={{
+            title: "",
+            tabBarButton: () => <AddButton />,
+          }}
         />
-      }
+      )}
       <Tabs.Screen
         name="budgets"
         options={{
-          title: 'Budgets',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="chart-bar" size={24} color={color} />,
+          title: "Budgets",
+          tabBarIcon: ({ color }) => (
+            <MaterialCommunityIcons name="chart-bar" size={24} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="wallets"
         options={{
-          title: 'Wallets',
-          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="wallet" size={24} color={color} />,
+          href: null, // Hide from tab bar
         }}
       />
       <Tabs.Screen
         name="alerts"
         options={{
-          title: 'Alerts',
+          title: "Alerts",
           tabBarIcon: ({ color }) => (
             <View>
               <MaterialCommunityIcons name="bell" size={24} color={color} />
@@ -138,12 +156,12 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   addButtonContainer: {
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
   },
   addButtonGlow: {
-    position: 'absolute',
+    position: "absolute",
     width: 64,
     height: 64,
     borderRadius: 32,
@@ -153,11 +171,11 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: -20,
     marginBottom: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 4,

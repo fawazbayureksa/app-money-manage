@@ -811,14 +811,9 @@ export default function HomeScreen() {
           onPress={() => router.push("/wallets" as any)}
         >
           <Card.Content style={styles.actionContent}>
-            <View
-              style={[
-                styles.actionIcon,
-                { backgroundColor: "#FF980020" },
-              ]}
-            >
+            <View style={[styles.actionIcon, { backgroundColor: "#FF980020" }]}>
               <IconButton
-                icon="account-balance-wallet"
+                icon="wallet"
                 size={28}
                 iconColor="#FF9800"
                 style={{ margin: 0 }}
