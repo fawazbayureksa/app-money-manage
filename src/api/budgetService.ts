@@ -4,6 +4,8 @@ export interface Budget {
   id: number;
   category_id: number;
   category_name?: string;
+  asset_id: number | null;
+  asset_name: string;
   amount: number;
   period: 'monthly' | 'yearly';
   start_date: string;
@@ -21,10 +23,12 @@ export interface Budget {
 
 export interface BudgetData {
   category_id: number;
+  asset_id?: number | null;
   amount: number;
   period: 'monthly' | 'yearly';
   start_date: string;
   alert_at: number;
+  description?: string;
 }
 
 export interface PaginatedBudgetResponse {

@@ -1,9 +1,8 @@
 import axios, { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import API_CONFIG from '../config/api';
+import { handleApiError, handleSessionExpired } from '../context/ToastContext';
 import { storage } from '../utils/storage';
 
-// Log API client initialization
-console.log('🔌 API Client initialized with base URL:', API_CONFIG.BASE_URL);
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
@@ -22,9 +21,7 @@ apiClient.interceptors.request.use(
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-      
-      // Log outgoing request for debugging
-      console.log(`📤 API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+
     } catch (error) {
       console.error('Error adding token to request:', error);
     }
@@ -36,14 +33,19 @@ apiClient.interceptors.request.use(
   }
 );
 
+// Endpoints that should NOT show error popups (auth endpoints handle their own errors)
+const SILENT_ERROR_ENDPOINTS = ['/login', '/register'];
+
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Log successful response
-    console.log(`✅ API Response: ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
     return response;
   },
   async (error: AxiosError) => {
+    const requestUrl = error.config?.url || '';
+    const isSilentEndpoint = SILENT_ERROR_ENDPOINTS.some(endpoint => requestUrl.includes(endpoint));
+
     // Detailed error logging for debugging
     if (error.response) {
       // Server responded with error status
@@ -55,7 +57,7 @@ apiClient.interceptors.response.use(
         message: error.message,
         data: error.response.data,
       });
-      
+
       // Special handling for 404 errors
       if (error.response.status === 404) {
         console.error('🔍 404 Not Found - Possible causes:');
@@ -82,19 +84,22 @@ apiClient.interceptors.response.use(
       console.error('❌ Request setup error:', error.message);
     }
 
-    // Handle 401 Unauthorized
+    // Handle 401 Unauthorized - Show session expired popup and redirect
     if (error.response?.status === 401) {
-      try {
-        await storage.clearAll();
-        // Navigation to login will be handled by AuthContext
-      } catch (storageError) {
-        console.error('Error clearing storage:', storageError);
-      }
+      console.log('🔒 401 Unauthorized - Session expired');
+      await handleSessionExpired();
+    } else if (error.response && !isSilentEndpoint) {
+      // Show general error popup for other server errors (except auth endpoints)
+      handleApiError();
+    } else if (!error.response && !isSilentEndpoint) {
+      // Network error - show popup
+      handleApiError();
     }
 
     return Promise.reject(error);
   }
 );
+
 
 // API response type
 export interface ApiResponse<T = any> {

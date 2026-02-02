@@ -14,6 +14,8 @@ function AddButton() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+
+  const platform = Platform.OS;
   
   // Use brighter color for dark mode for better visibility
   const buttonColor = isDark ? '#9f68ecff' : Colors[colorScheme ?? 'light'].tint;
@@ -89,18 +91,27 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <MaterialCommunityIcons name="format-list-bulleted" size={24} color={color} />,
         }}
       />
-      <Tabs.Screen
+      {Platform.OS !== 'web' &&
+        <Tabs.Screen
         name="categories"
         options={{
           title: '',
-          tabBarIcon: () => <AddButton />,
+          tabBarButton: () => <AddButton />,
         }}
-      />
+        />
+      }
       <Tabs.Screen
         name="budgets"
         options={{
           title: 'Budgets',
           tabBarIcon: ({ color }) => <MaterialCommunityIcons name="chart-bar" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="wallets"
+        options={{
+          title: 'Wallets',
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="wallet" size={24} color={color} />,
         }}
       />
       <Tabs.Screen

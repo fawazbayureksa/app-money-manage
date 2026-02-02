@@ -18,12 +18,6 @@ const getApiUrl = (): string => {
 
   const apiUrl = configUrl || envUrl || fallbackUrl;
 
-  // Log the API URL being used (helpful for debugging APK issues)
-  console.log('🌐 API Configuration Loaded:');
-  console.log('  - Build Profile:', Constants.expoConfig?.extra?.buildProfile || 'local');
-  console.log('  - API Base URL:', apiUrl);
-  console.log('  - Source:', configUrl ? 'app.config.js' : envUrl ? 'env var' : 'fallback');
-
   return apiUrl;
 };
 

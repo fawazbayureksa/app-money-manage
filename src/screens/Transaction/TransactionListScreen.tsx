@@ -1,4 +1,4 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
@@ -18,11 +18,19 @@ import {
   useTheme,
 } from 'react-native-paper';
 import { Transaction, transactionService } from '../../api/transactionService';
+import { Bank, bankService } from '../../api/bankService';
 import { formatCurrency, formatDateShort } from '../../utils/formatters';
 
 export default function TransactionListScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    type?: string;
+    category_id?: string;
+    start_date?: string;
+    end_date?: string;
+    bank_id?: string;
+  }>();
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,20 +38,64 @@ export default function TransactionListScreen() {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [filterType, setFilterType] = useState<'All' | 'Income' | 'Expense'>('All');
+  const [banks, setBanks] = useState<Bank[]>([]);
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 10;
+
+  // Sync param with filterType
+  React.useEffect(() => {
+    if (params.type && (params.type === 'Income' || params.type === 'Expense')) {
+      setFilterType(params.type);
+    }
+  }, [params.type]);
+
+  // Reset pagination when filters change
+  React.useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+  }, [filterType, params.category_id, params.start_date, params.end_date, params.bank_id]);
 
   // Fetch transactions
-  const fetchTransactions = async (showLoader = true) => {
+  const fetchTransactions = useCallback(async (pageNum = 1, shouldRefresh = false) => {
     try {
-      if (showLoader) setLoading(true);
+      if (pageNum === 1 && !shouldRefresh) setLoading(true);
+      if (pageNum > 1) setLoadingMore(true);
 
-      const params = filterType !== 'All' ? { transaction_type: filterType } : {};
-      const response = await transactionService.getTransactions(params);
+      // Use current filterType state
+      // Use current filterType state
+      const queryParams: any = filterType !== 'All' ? { transaction_type: filterType } : {};
 
-      console.log('Transactions Response:', JSON.stringify(response, null, 2));
+      // Page params
+      queryParams.page = pageNum;
+      queryParams.page_size = PAGE_SIZE;
+
+      // Add other filters from params if they exist
+      if (params.category_id) queryParams.category_id = parseInt(params.category_id);
+      if (params.bank_id) queryParams.bank_id = parseInt(params.bank_id);
+      if (params.start_date) queryParams.start_date = params.start_date;
+      if (params.end_date) queryParams.end_date = params.end_date;
+
+      const response = await transactionService.getTransactions(queryParams);
 
       if (response.success && response.data) {
-        console.log('Transactions data:', JSON.stringify(response.data, null, 2));
-        setTransactions(response.data);
+        const newData = response.data;
+
+        if (pageNum === 1) {
+          setTransactions(newData);
+        } else {
+          setTransactions(prev => [...prev, ...newData]);
+        }
+
+        // Check if we have more data
+        setHasMore(newData.length >= PAGE_SIZE);
+        setPage(pageNum);
+      } else {
+        if (pageNum === 1) setTransactions([]);
+        setHasMore(false);
       }
     } catch (error: any) {
       console.error('Error fetching transactions:', error);
@@ -51,23 +103,46 @@ export default function TransactionListScreen() {
         error.response?.data?.message || 'Failed to load transactions';
       setSnackbarMessage(errorMessage);
       setSnackbarVisible(true);
+      if (pageNum === 1) setTransactions([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
     }
-  };
+  }, [filterType, params.category_id, params.start_date, params.end_date]);
 
   // Load transactions when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      fetchTransactions();
-    }, [filterType])
+      fetchTransactions(1);
+      fetchBanks();
+    }, [fetchTransactions])
   );
+
+  const fetchBanks = async () => {
+    try {
+      const response = await bankService.getBanks();
+      if (response.success && response.data) {
+        setBanks(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching banks:', error);
+    }
+  };
 
   // Handle pull to refresh
   const onRefresh = () => {
     setRefreshing(true);
-    fetchTransactions(false);
+    setPage(1);
+    setHasMore(true);
+    fetchTransactions(1, true);
+  };
+
+  // Handle load more
+  const loadMore = () => {
+    if (!loading && !loadingMore && hasMore) {
+      fetchTransactions(page + 1);
+    }
   };
 
   // Handle delete transaction
@@ -89,7 +164,7 @@ export default function TransactionListScreen() {
               if (response.success) {
                 setSnackbarMessage('Transaction deleted successfully');
                 setSnackbarVisible(true);
-                fetchTransactions(false);
+                fetchTransactions(1, false);
               }
             } catch (error: any) {
               console.error('Error deleting transaction:', error);
@@ -190,7 +265,15 @@ export default function TransactionListScreen() {
     <View style={styles.filterContainer}>
       <Chip
         selected={filterType === 'All'}
-        onPress={() => setFilterType('All')}
+        onPress={() => {
+          setFilterType('All');
+          router.setParams({
+            category_id: undefined,
+            bank_id: undefined,
+            start_date: undefined,
+            end_date: undefined
+          });
+        }}
         style={styles.filterChip}
       >
         All
@@ -222,10 +305,36 @@ export default function TransactionListScreen() {
     );
   }
 
+  const renderActiveFilters = () => {
+    const hasActiveFilter = params.category_id || params.bank_id || params.start_date || params.end_date;
+    if (!hasActiveFilter) return null;
+
+    return (
+      <View style={styles.activeFiltersContainer}>
+        <Text variant="labelSmall" style={styles.activeFilterLabel}>Active Filters:</Text>
+        {params.category_id && (
+          <Chip icon="tag" onClose={() => router.setParams({ category_id: undefined })} compact mode="flat">
+            Category #{params.category_id}
+          </Chip>
+        )}
+        {params.bank_id && (
+          <Chip icon="bank" onClose={() => router.setParams({ bank_id: undefined })} compact mode="flat">
+            {banks.find(b => b.id === parseInt(params.bank_id!))?.bank_name || `Bank #${params.bank_id}`}
+          </Chip>
+        )}
+        {params.start_date && params.end_date && (
+          <Chip icon="calendar" onClose={() => router.setParams({ start_date: undefined, end_date: undefined })} compact mode="flat">
+            {params.start_date} - {params.end_date}
+          </Chip>
+        )}
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {renderFilters()}
-
+      {renderActiveFilters()}
       <FlatList
         data={transactions}
         renderItem={renderTransactionItem}
@@ -241,6 +350,15 @@ export default function TransactionListScreen() {
             onRefresh={onRefresh}
             colors={[theme.colors.primary]}
           />
+        }
+        onEndReached={loadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={styles.footerLoader}>
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+            </View>
+          ) : null
         }
       />
 
@@ -281,6 +399,18 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     marginRight: 8,
+  },
+  activeFiltersContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  activeFilterLabel: {
+    fontWeight: 'bold',
+    opacity: 0.7,
   },
   incomeChip: {
     backgroundColor: '#4CAF50',
@@ -372,5 +502,9 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.4,
     shadowRadius: 8,
+  },
+  footerLoader: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
 });
