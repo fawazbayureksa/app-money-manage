@@ -2,8 +2,8 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
   Alert,
-  FlatList,
   RefreshControl,
+  SectionList,
   StyleSheet,
   View,
 } from 'react-native';
@@ -17,9 +17,10 @@ import {
   Text,
   useTheme,
 } from 'react-native-paper';
-import { Transaction, transactionService } from '../../api/transactionService';
 import { Bank, bankService } from '../../api/bankService';
-import { formatCurrency, formatDateShort } from '../../utils/formatters';
+import { Transaction, transactionService } from '../../api/transactionService';
+import { formatCurrency, formatDateRelative } from '../../utils/formatters';
+import { groupTransactionsByDate, TransactionSection } from '../../utils/transactionUtils';
 
 export default function TransactionListScreen() {
   const theme = useTheme();
@@ -39,6 +40,9 @@ export default function TransactionListScreen() {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [filterType, setFilterType] = useState<'All' | 'Income' | 'Expense'>('All');
   const [banks, setBanks] = useState<Bank[]>([]);
+
+  // Derived sections
+  const sections = React.useMemo(() => groupTransactionsByDate(transactions), [transactions]);
 
   // Pagination state
   const [page, setPage] = useState(1);
@@ -189,59 +193,79 @@ export default function TransactionListScreen() {
     const typeColor = isIncome ? '#4CAF50' : '#F44336';
 
     return (
-      <Card style={styles.card}>
-        <Card.Content>
-          <View style={styles.cardHeader}>
-            <View style={styles.typeIndicator}>
+      <Card style={styles.card} mode="elevated">
+        <Card.Content style={styles.cardContent}>
+          <View style={styles.cardRow}>
+            <View style={styles.leftContent}>
               <View
                 style={[
-                  styles.typeIcon,
-                  { backgroundColor: typeColor + '20' },
+                  styles.iconContainer,
+                  { backgroundColor: isIncome ? '#E8F5E9' : '#FFEBEE' },
                 ]}
               >
                 <IconButton
-                  icon={isIncome ? 'arrow-up' : 'arrow-down'}
+                  icon={item.category_name ? 'tag' : 'cash'}
                   iconColor={typeColor}
-                  size={20}
+                  size={24}
+                  style={{ margin: 0 }}
                 />
               </View>
-              <View style={styles.mainInfo}>
-                <Text variant="titleMedium" style={[styles.amount, { color: typeColor }]}>
-                  {isIncome ? '+' : '-'} {formatCurrency(item.amount)}
+              <View style={styles.textContainer}>
+                <Text variant="titleMedium" numberOfLines={1} style={styles.categoryText}>
+                  {item.category_name || 'Uncategorized'}
                 </Text>
-                <Text variant="bodyMedium" style={styles.category}>
-                  {item.category_name || 'No Category'}
-                </Text>
+                {item.description ? (
+                  <Text variant="bodySmall" numberOfLines={1} style={styles.descriptionText}>
+                    {item.description}
+                  </Text>
+                ) : null}
+                <View style={styles.metaContainer}>
+                  {item.bank_name && (
+                    <Text variant="labelSmall" style={styles.bankText}>
+                      {item.bank_name}
+                    </Text>
+                  )}
+                </View>
               </View>
             </View>
-            <IconButton
-              icon="delete"
-              iconColor={theme.colors.error}
-              size={20}
-              onPress={() => handleDelete(item)}
-            />
-          </View>
 
-          <View style={styles.cardDetails}>
-            {item.bank_name && (
-              <Chip icon="bank" compact style={styles.chip}>
-                {item.bank_name}
-              </Chip>
-            )}
-            <Chip icon="calendar" compact style={styles.chip}>
-              {formatDateShort(item.date)}
-            </Chip>
+            <View style={styles.rightContent}>
+              <Text variant="titleMedium" style={{ color: typeColor, fontWeight: 'bold' }}>
+                {isIncome ? '+' : '-'} {formatCurrency(item.amount)}
+              </Text>
+              <IconButton
+                icon="delete-outline"
+                iconColor={theme.colors.error}
+                size={20}
+                onPress={() => handleDelete(item)}
+                style={{ margin: 0, alignSelf: 'flex-end' }}
+              />
+            </View>
           </View>
-
-          {item.description && (
-            <Text variant="bodySmall" style={styles.description}>
-              {item.description}
-            </Text>
-          )}
         </Card.Content>
       </Card>
     );
   };
+
+  const renderSectionHeader = ({ section: { title, summary } }: { section: TransactionSection }) => (
+    <View style={styles.sectionHeader}>
+      <Text variant="titleSmall" style={styles.sectionTitle}>
+        {formatDateRelative(title)}
+      </Text>
+      <View style={styles.sectionSummary}>
+        {summary.income > 0 && (
+          <Text style={[styles.summaryText, { color: '#4CAF50' }]}>
+            +{formatCurrency(summary.income)}
+          </Text>
+        )}
+        {summary.expense > 0 && (
+          <Text style={[styles.summaryText, { color: '#F44336', marginLeft: 8 }]}>
+            -{formatCurrency(summary.expense)}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
 
   // Render empty state
   const renderEmptyState = () => (
@@ -335,10 +359,11 @@ export default function TransactionListScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {renderFilters()}
       {renderActiveFilters()}
-      <FlatList
-        data={transactions}
+      <SectionList
+        sections={sections}
         renderItem={renderTransactionItem}
-        keyExtractor={(item, index) => item?.id?.toString() || `transaction-${index}`}
+        renderSectionHeader={renderSectionHeader}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={[
           styles.listContent,
           transactions.length === 0 && styles.emptyListContent,
@@ -360,6 +385,7 @@ export default function TransactionListScreen() {
             </View>
           ) : null
         }
+        stickySectionHeadersEnabled={false}
       />
 
       <FAB
@@ -434,45 +460,75 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   card: {
-    marginBottom: 12,
+    marginBottom: 8,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    elevation: 2,
   },
-  cardHeader: {
+  cardContent: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  cardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
-  typeIndicator: {
+  leftContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  typeIcon: {
-    borderRadius: 8,
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
   },
-  mainInfo: {
+  textContainer: {
     flex: 1,
+    marginRight: 8,
   },
-  amount: {
-    fontWeight: 'bold',
-    fontSize: 18,
+  categoryText: {
+    fontWeight: '600',
+    marginBottom: 2,
   },
-  category: {
-    marginTop: 4,
+  descriptionText: {
+    color: '#666',
+    marginBottom: 2,
   },
-  cardDetails: {
+  metaContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 12,
+    alignItems: 'center',
   },
-  chip: {
-    marginRight: 4,
+  bankText: {
+    color: '#999',
+    fontSize: 10,
   },
-  description: {
-    marginTop: 8,
-    opacity: 0.7,
-    fontStyle: 'italic',
+  rightContent: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    backgroundColor: 'transparent',
+  },
+  sectionTitle: {
+    fontWeight: 'bold',
+    opacity: 0.6,
+  },
+  sectionSummary: {
+    flexDirection: 'row',
+  },
+  summaryText: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   emptyState: {
     alignItems: 'center',
