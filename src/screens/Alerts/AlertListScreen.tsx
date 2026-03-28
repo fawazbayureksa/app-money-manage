@@ -2,16 +2,17 @@ import { useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { FlatList, RefreshControl, StyleSheet, View } from "react-native";
 import {
-  ActivityIndicator,
-  Button,
-  Card,
-  Chip,
-  IconButton,
-  Snackbar,
-  Text,
-  useTheme,
+    ActivityIndicator,
+    Button,
+    Card,
+    Chip,
+    IconButton,
+    Snackbar,
+    Text,
+    useTheme,
 } from "react-native-paper";
 import { AlertParams, BudgetAlert, alertService } from "../../api/alertService";
+import EmailSyncCard from "../../components/EmailSyncCard";
 
 export default function AlertListScreen() {
   const theme = useTheme();
@@ -33,61 +34,66 @@ export default function AlertListScreen() {
   const pageSize = 10;
 
   // Fetch alerts
-  const fetchAlerts = async (showLoader = true, page = 1, append = false) => {
-    try {
-      if (showLoader) setLoading(true);
-      if (append) setLoadingMore(true);
+  const fetchAlerts = useCallback(
+    async (showLoader = true, page = 1, append = false) => {
+      try {
+        if (showLoader) setLoading(true);
+        if (append) setLoadingMore(true);
 
-      const params: AlertParams = {
-        page,
-        page_size: pageSize,
-        sort_by: "created_at",
-        sort_dir: "desc",
-      };
+        const params: AlertParams = {
+          page,
+          page_size: pageSize,
+          sort_by: "created_at",
+          sort_dir: "desc",
+        };
 
-      if (filterType === "unread") {
-        params.unread_only = true;
-      }
-
-      const response = await alertService.getAlerts(params);
-
-      if (response.success && response.data) {
-        const alertsData = response.data.data || [];
-
-        if (append) {
-          // Deduplicate alerts by id when appending
-          setAlerts((prev) => {
-            const existingIds = new Set(prev.map((a) => a.id));
-            const newAlerts = alertsData.filter((a) => !existingIds.has(a.id));
-            return [...prev, ...newAlerts];
-          });
-        } else {
-          setAlerts(alertsData);
+        if (filterType === "unread") {
+          params.unread_only = true;
         }
 
-        setCurrentPage(response.data.page);
-        setTotalPages(response.data.total_pages);
-        setTotalItems(response.data.total_items);
+        const response = await alertService.getAlerts(params);
+
+        if (response.success && response.data) {
+          const alertsData = response.data.data || [];
+
+          if (append) {
+            // Deduplicate alerts by id when appending
+            setAlerts((prev) => {
+              const existingIds = new Set(prev.map((a) => a.id));
+              const newAlerts = alertsData.filter(
+                (a) => !existingIds.has(a.id),
+              );
+              return [...prev, ...newAlerts];
+            });
+          } else {
+            setAlerts(alertsData);
+          }
+
+          setCurrentPage(response.data.page);
+          setTotalPages(response.data.total_pages);
+          setTotalItems(response.data.total_items);
+        }
+      } catch (error: any) {
+        console.error("Error fetching alerts:", error);
+        const errorMessage =
+          error.response?.data?.message || "Failed to load alerts";
+        setSnackbarMessage(errorMessage);
+        setSnackbarVisible(true);
+      } finally {
+        if (showLoader) setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
       }
-    } catch (error: any) {
-      console.error("Error fetching alerts:", error);
-      const errorMessage =
-        error.response?.data?.message || "Failed to load alerts";
-      setSnackbarMessage(errorMessage);
-      setSnackbarVisible(true);
-    } finally {
-      if (showLoader) setLoading(false);
-      setRefreshing(false);
-      setLoadingMore(false);
-    }
-  };
+    },
+    [filterType],
+  );
 
   // Load alerts when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       setCurrentPage(1);
       fetchAlerts(true, 1, false);
-    }, [filterType]),
+    }, [fetchAlerts]),
   );
 
   // Handle pull to refresh
@@ -353,6 +359,13 @@ export default function AlertListScreen() {
     </View>
   );
 
+  const renderListHeader = () => (
+    <>
+      <EmailSyncCard />
+      {renderFilters()}
+    </>
+  );
+
   // Render footer for load more
   const renderFooter = () => {
     if (!loadingMore) return null;
@@ -378,8 +391,6 @@ export default function AlertListScreen() {
     <View
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      {renderFilters()}
-
       <FlatList
         data={alerts}
         renderItem={renderAlertItem}
@@ -388,6 +399,7 @@ export default function AlertListScreen() {
           styles.listContent,
           alerts.length === 0 && styles.emptyListContent,
         ]}
+        ListHeaderComponent={renderListHeader}
         ListEmptyComponent={renderEmptyState}
         ListFooterComponent={renderFooter}
         onEndReached={handleLoadMore}
@@ -428,8 +440,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 16,
     gap: 8,
+    marginBottom: 16,
   },
   filterChips: {
     flexDirection: "row",
@@ -443,7 +455,6 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingTop: 0,
     paddingBottom: 16,
   },
   emptyListContent: {
